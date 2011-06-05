@@ -26,42 +26,35 @@ namespace Graph.Items
 
 		internal void ForceResize() { TextSize = Size.Empty; }
 		internal SizeF				TextSize;
-	}
-
-	[NodeItemDescription(typeof(NodeTitleItem))]
-	internal class NodeTitleRenderer : NodeItemRenderer<NodeTitleItem>
-	{
-		public override SizeF Measure(IDeviceContext context, SizeF minimumSize, NodeTitleItem item)
+		
+		internal override SizeF Measure(IDeviceContext context)
 		{
-			if (!string.IsNullOrWhiteSpace(item.Title))
+			if (!string.IsNullOrWhiteSpace(this.Title))
 			{
-				if (item.TextSize.IsEmpty)
+				if (this.TextSize.IsEmpty)
 				{
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight);
-					item.TextSize			= TextRenderer.MeasureText(context, item.Title, SystemFonts.CaptionFont, size, GraphConstants.TitleTextFlags);
+					this.TextSize			= TextRenderer.MeasureText(context, this.Title, SystemFonts.CaptionFont, size, GraphConstants.TitleTextFlags);
 
-					item.TextSize.Width		= Math.Max(size.Width,  item.TextSize.Width + (GraphConstants.CornerSize * 2));
-					item.TextSize.Height	= Math.Max(size.Height, item.TextSize.Height) + GraphConstants.TopHeight;
+					this.TextSize.Width		= Math.Max(size.Width,  this.TextSize.Width + (GraphConstants.CornerSize * 2));
+					this.TextSize.Height	= Math.Max(size.Height, this.TextSize.Height) + GraphConstants.TopHeight;
 				}
-				var measuredSize = item.TextSize;
-				measuredSize.Width	= Math.Max(minimumSize.Width,  measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return this.TextSize;
 			} else
 			{
-				var measuredSize = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight + GraphConstants.TopHeight);
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight + GraphConstants.TopHeight);
 			}
 		}
 
-		public override void Render(Graphics graphics, SizeF minimumSize, NodeTitleItem item, PointF location)
+		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
-			var size = Measure(graphics, minimumSize, item);
+			var size = Measure(graphics);
+			size.Width  = Math.Max(minimumSize.Width, size.Width);
+			size.Height = Math.Max(minimumSize.Height, size.Height);
+
 			size.Height -= GraphConstants.TopHeight;
 			location.Y += GraphConstants.TopHeight;
-			graphics.DrawString(item.Title, SystemFonts.CaptionFont, Brushes.Black, new RectangleF(location, size), GraphConstants.TitleStringFormat);
+			graphics.DrawString(this.Title, SystemFonts.CaptionFont, Brushes.Black, new RectangleF(location, size), GraphConstants.TitleStringFormat);
 		}
 	}
 }

@@ -63,55 +63,49 @@ namespace Graph.Items
 				Clicked(this, new NodeItemEventArgs(this));
 			return true;
 		}
-	}
 
-	[NodeItemDescription(typeof(NodeColorItem))]
-	public class NodeColorRenderer : NodeItemRenderer<NodeColorItem>
-	{
+		
 		const int ColorBoxSize = 16;
 		const int Spacing = 2;
-		public override SizeF Measure(IDeviceContext context, SizeF minimumSize, NodeColorItem item)
+		
+		internal override SizeF Measure(IDeviceContext context)
 		{
-			if (!string.IsNullOrWhiteSpace(item.Text))
+			if (!string.IsNullOrWhiteSpace(this.Text))
 			{
-				if (item.TextSize.IsEmpty)
+				if (this.TextSize.IsEmpty)
 				{
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 
-					if (item.Input.Enabled != item.Output.Enabled)
+					if (this.Input.Enabled != this.Output.Enabled)
 					{
-						if (item.Input.Enabled)
-							item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
+						if (this.Input.Enabled)
+							this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
 						else
-							item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.RightTextFlags);
+							this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.RightTextFlags);
 					} else
-						item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.CenterTextFlags);
+						this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.CenterTextFlags);
 
-					item.TextSize.Width  = Math.Max(size.Width, item.TextSize.Width + ColorBoxSize + Spacing);
-					item.TextSize.Height = Math.Max(size.Height, item.TextSize.Height);
+					this.TextSize.Width  = Math.Max(size.Width, this.TextSize.Width + ColorBoxSize + Spacing);
+					this.TextSize.Height = Math.Max(size.Height, this.TextSize.Height);
 				}
-				var measuredSize = item.TextSize;
-				measuredSize.Width	= Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return this.TextSize;
 			} else
 			{
-				var measuredSize = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight + GraphConstants.TopHeight);
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight + GraphConstants.TopHeight);
 			}
 		}
 
-		public override void Render(Graphics graphics, SizeF minimumSize, NodeColorItem item, PointF location)
+		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
-			var size = Measure(graphics, minimumSize, item);
+			var size = Measure(graphics);
+			size.Width  = Math.Max(minimumSize.Width, size.Width);
+			size.Height = Math.Max(minimumSize.Height, size.Height);
 
 			var alignment	= HorizontalAlignment.Center;
 			var format		= GraphConstants.CenterTextStringFormat;
-			if (item.Input.Enabled != item.Output.Enabled)
+			if (this.Input.Enabled != this.Output.Enabled)
 			{
-				if (item.Input.Enabled)
+				if (this.Input.Enabled)
 				{
 					alignment	= HorizontalAlignment.Left;
 					format		= GraphConstants.LeftTextStringFormat;
@@ -141,26 +135,24 @@ namespace Graph.Items
 					break;
 			}
 
-			graphics.DrawString(item.Text, SystemFonts.MenuFont, Brushes.Black, rect, format);
+			graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, rect, format);
 
 			using (var path = NodeUtility.CreateRoundedRectangle(colorBox.Size, colorBox.Location))
 			{
-				using (var brush = new SolidBrush(item.Color))
+				using (var brush = new SolidBrush(this.Color))
 				{
 					graphics.FillPath(brush, path);
 				}
-				if (item.Hover)
+				if (this.Hover)
 					graphics.DrawPath(Pens.White, path);
 				else
 					graphics.DrawPath(Pens.Black, path);
 			}
-			/*
-			using (var brush = new SolidBrush(item.Color))
-			{
-				graphics.FillRectangle(brush, colorBox.X, colorBox.Y, colorBox.Width, colorBox.Height);
-			}
-			graphics.DrawRectangle(Pens.Black, colorBox.X, colorBox.Y, colorBox.Width, colorBox.Height);
-			*/
+			//using (var brush = new SolidBrush(this.Color))
+			//{
+			//	graphics.FillRectangle(brush, colorBox.X, colorBox.Y, colorBox.Width, colorBox.Height);
+			//}
+			//graphics.DrawRectangle(Pens.Black, colorBox.X, colorBox.Y, colorBox.Width, colorBox.Height);
 		}
 	}
 }

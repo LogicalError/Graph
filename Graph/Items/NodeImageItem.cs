@@ -51,73 +51,66 @@ namespace Graph.Items
 				Clicked(this, new NodeItemEventArgs(this));
 			return true;
 		}
-	}
 
-	[NodeItemDescription(typeof(NodeImageItem))]
-	public class NodeImageRenderer : NodeItemRenderer<NodeImageItem>
-	{
-		public override SizeF Measure(IDeviceContext context, SizeF minimumSize, NodeImageItem item)
+
+		internal override SizeF Measure(IDeviceContext context)
 		{
-			if (item.Image != null)
+			if (this.Image != null)
 			{
 				SizeF size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 
-				if (item.Width.HasValue)
-					size.Width = Math.Max(size.Width, item.Width.Value + 2);
+				if (this.Width.HasValue)
+					size.Width = Math.Max(size.Width, this.Width.Value + 2);
 				else
-					size.Width = Math.Max(size.Width, item.Image.Width + 2);
+					size.Width = Math.Max(size.Width, this.Image.Width + 2);
 
-				if (item.Height.HasValue)
-					size.Height = Math.Max(size.Height, item.Height.Value + 2);
+				if (this.Height.HasValue)
+					size.Height = Math.Max(size.Height, this.Height.Value + 2);
 				else
-					size.Height = Math.Max(size.Height, item.Image.Height + 2);
+					size.Height = Math.Max(size.Height, this.Image.Height + 2);
 				
-				var measuredSize = size;
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return size;
 			} else
 			{
 				var size = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
-				if (item.Width.HasValue)
-					size.Width = Math.Max(size.Width, item.Width.Value + 2);
+				if (this.Width.HasValue)
+					size.Width = Math.Max(size.Width, this.Width.Value + 2);
 
-				if (item.Height.HasValue)
-					size.Height = Math.Max(size.Height, item.Height.Value + 2);
+				if (this.Height.HasValue)
+					size.Height = Math.Max(size.Height, this.Height.Value + 2);
 				
-				var measuredSize = size;
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return size;
 			}
 		}
 
-		public override void Render(Graphics graphics, SizeF minimumSize, NodeImageItem item, PointF location)
+		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
-			var size = Measure(graphics, minimumSize, item);
+			var size = Measure(graphics);
+			size.Width  = Math.Max(minimumSize.Width, size.Width);
+			size.Height = Math.Max(minimumSize.Height, size.Height);
 
-			if (item.Width.HasValue &&
-				size.Width > item.Width.Value)
+			if (this.Width.HasValue &&
+				size.Width > this.Width.Value)
 			{
-				location.X += (size.Width - (item.Width.Value + 2)) / 2.0f;
-				size.Width = (item.Width.Value + 2);
+				location.X += (size.Width - (this.Width.Value + 2)) / 2.0f;
+				size.Width = (this.Width.Value + 2);
 			}
 			var rect = new RectangleF(location, size);
 
-			if (item.Image != null)
+			if (this.Image != null)
 			{
 				rect.Width -= 2;
 				rect.Height -= 2;
 				rect.X++;
 				rect.Y++;
-				graphics.DrawImage(item.Image, rect);
+				graphics.DrawImage(this.Image, rect);
 				rect.Width += 2;
 				rect.Height += 2;
 				rect.X--;
 				rect.Y--;
 			}
 
-			if (item.Hover)
+			if (this.Hover)
 				graphics.DrawRectangle(Pens.White, rect.Left, rect.Top, rect.Width, rect.Height);
 			else
 				graphics.DrawRectangle(Pens.Black, rect.Left, rect.Top, rect.Width, rect.Height);

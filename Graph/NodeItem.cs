@@ -25,7 +25,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Drawing;
-using System.ComponentModel.Composition;
 
 namespace Graph
 {
@@ -63,5 +62,7 @@ namespace Graph
 		public virtual bool			OnStartDrag(PointF location) { return false; }
 		public virtual bool			OnDrag(PointF location)		 { return false; }		
 		public virtual bool			OnEndDrag() 				 { return false; }
+		internal abstract SizeF		Measure(IDeviceContext context);
+		internal abstract void		Render(Graphics graphics, SizeF minimumSize, PointF position);
 	}
 }

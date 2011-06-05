@@ -72,46 +72,39 @@ namespace Graph.Items
 		}
 
 		internal SizeF TextSize;
-	}
 
-	[NodeItemDescription(typeof(NodeCheckboxItem))]
-	public class NodeCheckboxRenderer : NodeItemRenderer<NodeCheckboxItem>
-	{
-		public override SizeF Measure(IDeviceContext context, SizeF minimumSize, NodeCheckboxItem item)
+
+		internal override SizeF Measure(IDeviceContext context)
 		{
-			if (!string.IsNullOrWhiteSpace(item.Text))
+			if (!string.IsNullOrWhiteSpace(this.Text))
 			{
-				if (item.TextSize.IsEmpty)
+				if (this.TextSize.IsEmpty)
 				{
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 
-					item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.CenterTextFlags);
+					this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.CenterTextFlags);
 
-					item.TextSize.Width = Math.Max(size.Width, item.TextSize.Width);
-					item.TextSize.Height = Math.Max(size.Height, item.TextSize.Height);
+					this.TextSize.Width	 = Math.Max(size.Width, this.TextSize.Width);
+					this.TextSize.Height = Math.Max(size.Height, this.TextSize.Height);
 				}
 
-				var measuredSize = item.TextSize;
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return this.TextSize;
 			} else
 			{
-				var measuredSize = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight + GraphConstants.TopHeight);
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.TitleHeight + GraphConstants.TopHeight);
 			}
 		}
 
-		public override void Render(Graphics graphics, SizeF minimumSize, NodeCheckboxItem item, PointF location)
+		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
-			var size = Measure(graphics, minimumSize, item);
+			var size = Measure(graphics);
+			size.Width  = Math.Max(minimumSize.Width, size.Width);
+			size.Height = Math.Max(minimumSize.Height, size.Height);
 			
 			using (var path = NodeUtility.CreateRoundedRectangle(size, location))
 			{
 				var rect = new RectangleF(location, size);
-				if (item.Checked)
+				if (this.Checked)
 				{
 					using (var brush = new SolidBrush(Color.FromArgb(128+32, Color.White)))
 					{
@@ -124,9 +117,9 @@ namespace Graph.Items
 						graphics.FillPath(brush, path);
 					}
 				}
-				graphics.DrawString(item.Text, SystemFonts.MenuFont, Brushes.Black, rect, GraphConstants.CenterTextStringFormat);
+				graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, rect, GraphConstants.CenterTextStringFormat);
 
-				if (item.Hover)
+				if (this.Hover)
 					graphics.DrawPath(Pens.White, path);
 				else	
 					graphics.DrawPath(Pens.Black, path);

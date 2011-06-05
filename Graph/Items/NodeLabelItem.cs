@@ -31,55 +31,49 @@ namespace Graph.Items
 		#endregion
 
 		internal SizeF TextSize;
-	}
 
-	[NodeItemDescription(typeof(NodeLabelItem))]
-	public class NodeLabelRenderer : NodeItemRenderer<NodeLabelItem>
-	{
-		public override SizeF Measure(IDeviceContext context, SizeF minimumSize, NodeLabelItem item)
+		
+		internal override SizeF Measure(IDeviceContext context)
 		{
-			if (!string.IsNullOrWhiteSpace(item.Text))
+			if (!string.IsNullOrWhiteSpace(this.Text))
 			{
-				if (item.TextSize.IsEmpty)
+				if (this.TextSize.IsEmpty)
 				{
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 
-					if (item.Input.Enabled != item.Output.Enabled)
+					if (this.Input.Enabled != this.Output.Enabled)
 					{
-						if (item.Input.Enabled)
-							item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
+						if (this.Input.Enabled)
+							this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
 						else
-							item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.RightTextFlags);
+							this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.RightTextFlags);
 					} else
-						item.TextSize = TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.CenterTextFlags);
+						this.TextSize = TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.CenterTextFlags);
 
-					item.TextSize.Width  = Math.Max(size.Width, item.TextSize.Width);
-					item.TextSize.Height = Math.Max(size.Height, item.TextSize.Height);
+					this.TextSize.Width  = Math.Max(size.Width, this.TextSize.Width);
+					this.TextSize.Height = Math.Max(size.Height, this.TextSize.Height);
 				}
-				var measuredSize = item.TextSize;
-				measuredSize.Width	= Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return this.TextSize;
 			} else
 			{
-				var measuredSize = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 			}
 		}
 
-		public override void Render(Graphics graphics, SizeF minimumSize, NodeLabelItem item, PointF location)
+		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
-			var size = Measure(graphics, minimumSize, item);
-			if (item.Input.Enabled != item.Output.Enabled)
+			var size = Measure(graphics);
+			size.Width  = Math.Max(minimumSize.Width, size.Width);
+			size.Height = Math.Max(minimumSize.Height, size.Height);
+
+			if (this.Input.Enabled != this.Output.Enabled)
 			{
-				if (item.Input.Enabled)
-					graphics.DrawString(item.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.LeftTextStringFormat);
+				if (this.Input.Enabled)
+					graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.LeftTextStringFormat);
 				else
-					graphics.DrawString(item.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.RightTextStringFormat);
+					graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.RightTextStringFormat);
 			} else
-				graphics.DrawString(item.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.CenterTextStringFormat);
+				graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.CenterTextStringFormat);
 		}
 	}
 }

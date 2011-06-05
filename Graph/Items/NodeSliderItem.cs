@@ -116,46 +116,41 @@ namespace Graph.Items
 		internal SizeF itemSize;
 		internal SizeF textSize;
 		internal RectangleF sliderRect;
-	}
 
-	[NodeItemDescription(typeof(NodeSliderItem))]
-	public class NodeSliderRenderer : NodeItemRenderer<NodeSliderItem>
-	{
+		
 		const int SliderBoxSize = 4;
 		const int SliderHeight	= 8;
 		const int Spacing		= 2;
-		public override SizeF Measure(IDeviceContext context, SizeF minimumSize, NodeSliderItem item)
+
+		internal override SizeF Measure(IDeviceContext context)
 		{
-			if (!string.IsNullOrWhiteSpace(item.Text))
+			if (!string.IsNullOrWhiteSpace(this.Text))
 			{
-				if (item.itemSize.IsEmpty)
+				if (this.itemSize.IsEmpty)
 				{
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
-					var sliderWidth = item.MinimumSliderSize + SliderBoxSize;
+					var sliderWidth = this.MinimumSliderSize + SliderBoxSize;
 
-					item.textSize = (SizeF)TextRenderer.MeasureText(context, item.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
-					item.textSize.Width		= Math.Max(item.TextSize, item.textSize.Width + 4);
-					item.itemSize.Width	= Math.Max(size.Width, item.textSize.Width + sliderWidth + Spacing);
-					item.itemSize.Height	= Math.Max(size.Height, item.textSize.Height);
+					this.textSize = (SizeF)TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
+					this.textSize.Width		= Math.Max(this.TextSize, this.textSize.Width + 4);
+					this.itemSize.Width		= Math.Max(size.Width, this.textSize.Width + sliderWidth + Spacing);
+					this.itemSize.Height	= Math.Max(size.Height, this.textSize.Height);
 				}
-				var measuredSize = item.itemSize;
-				measuredSize.Width	= Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return this.itemSize;
 			} else
 			{
-				var measuredSize = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
-				measuredSize.Width  = Math.Max(minimumSize.Width, measuredSize.Width);
-				measuredSize.Height = Math.Max(minimumSize.Height, measuredSize.Height);
-				return measuredSize;
+				return new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 			}
 		}
 
-		public override void Render(Graphics graphics, SizeF minimumSize, NodeSliderItem item, PointF location)
+		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
-			var size			= Measure(graphics, minimumSize, item);
-			var sliderOffset	= Spacing + item.textSize.Width;
-			var sliderWidth		= size.Width - (Spacing + item.textSize.Width);
+			var size = Measure(graphics);
+			size.Width  = Math.Max(minimumSize.Width, size.Width);
+			size.Height = Math.Max(minimumSize.Height, size.Height);
+
+			var sliderOffset	= Spacing + this.textSize.Width;
+			var sliderWidth		= size.Width - (Spacing + this.textSize.Width);
 
 			var textRect	= new RectangleF(location, size);
 			var sliderBox	= new RectangleF(location, size);
@@ -166,19 +161,19 @@ namespace Graph.Items
 			sliderRect.Height	= SliderHeight;
 			textRect.Width -= sliderWidth + Spacing;
 
-			var valueSize = (item.MaxValue - item.MinValue);
-			item.sliderRect = sliderRect;
-			item.sliderRect.Width -= SliderBoxSize;
-			item.sliderRect.X += SliderBoxSize / 2.0f;
+			var valueSize = (this.MaxValue - this.MinValue);
+			this.sliderRect = sliderRect;
+			this.sliderRect.Width -= SliderBoxSize;
+			this.sliderRect.X += SliderBoxSize / 2.0f;
 
 			sliderBox.Width = SliderBoxSize;
-			sliderBox.X = sliderRect.X + (item.Value * item.sliderRect.Width) / valueSize;
+			sliderBox.X = sliderRect.X + (this.Value * this.sliderRect.Width) / valueSize;
 
-			graphics.DrawString(item.Text, SystemFonts.MenuFont, Brushes.Black, textRect, GraphConstants.LeftTextStringFormat);
+			graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, textRect, GraphConstants.LeftTextStringFormat);
 
 			using (var path = NodeUtility.CreateRoundedRectangle(sliderRect.Size, sliderRect.Location))
 			{
-				if (item.Hover || item.Dragging)
+				if (this.Hover || this.Dragging)
 					graphics.DrawPath(Pens.White, path);
 				else
 					graphics.DrawPath(Pens.Black, path);
@@ -186,7 +181,7 @@ namespace Graph.Items
 
 			graphics.FillRectangle(Brushes.LightGray, sliderBox.X, sliderBox.Y, sliderBox.Width, sliderBox.Height);
 
-			if (item.Hover || item.Dragging)
+			if (this.Hover || this.Dragging)
 				graphics.DrawRectangle(Pens.White, sliderBox.X, sliderBox.Y, sliderBox.Width, sliderBox.Height);
 			else
 				graphics.DrawRectangle(Pens.Black, sliderBox.X, sliderBox.Y, sliderBox.Width, sliderBox.Height);

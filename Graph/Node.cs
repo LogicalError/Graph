@@ -1,4 +1,4 @@
-﻿﻿#region License
+﻿#region License
 // Copyright (c) 2009 Sander van Rossen
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy

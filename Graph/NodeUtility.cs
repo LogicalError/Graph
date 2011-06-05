@@ -26,37 +26,11 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.ComponentModel.Composition;
-using System.ComponentModel.Composition.Hosting;
 
 namespace Graph
 {
 	public static class NodeUtility
 	{
-		class ItemFinder
-		{
-			[ImportMany]
-			public Lazy<INodeItemRenderer, INodeItemDescription>[] ItemTypes { get; set; }
-		}
-
-		static NodeUtility()
-		{
-			var catalog		= new AssemblyCatalog(System.Reflection.Assembly.GetExecutingAssembly());
-			var container	= new CompositionContainer(catalog);
-			var itemFinder	= new ItemFinder();
-			container.ComposeParts(itemFinder);
-
-			itemRenderers = new Dictionary<Type, INodeItemRenderer>();
-			foreach (var itemRendererType in itemFinder.ItemTypes)
-			{
-				itemRenderers.Add(itemRendererType.Metadata.ItemType, itemRendererType.Value);
-			}
-
-		}
-
-		static readonly Dictionary<Type, INodeItemRenderer> itemRenderers;
-
-
 		static IEnumerable<NodeItem> EnumerateNodeItems(Node node)
 		{
 			yield return node.titleItem;
@@ -74,11 +48,7 @@ namespace Graph
 				(int)GraphConstants.BottomHeight;
 			foreach (var item in EnumerateNodeItems(node))
 			{
-				INodeItemRenderer itemRenderer;
-				if (!itemRenderers.TryGetValue(item.GetType(), out itemRenderer))
-					continue;
-
-				var itemSize = itemRenderer.Measure(context, SizeF.Empty, item);
+				var itemSize = item.Measure(context);
 				size.Width = Math.Max(size.Width, itemSize.Width);
 				size.Height += GraphConstants.ItemSpacing + itemSize.Height;
 			}
@@ -92,22 +62,14 @@ namespace Graph
 
 		static SizeF PreRenderItem(Graphics graphics, NodeItem item, PointF position)
 		{
-			INodeItemRenderer itemRenderer;
-			if (!itemRenderers.TryGetValue(item.GetType(), out itemRenderer))
-				return Size.Empty;
-
-			var itemSize = (SizeF)itemRenderer.Measure(graphics, SizeF.Empty, item);
+			var itemSize = (SizeF)item.Measure(graphics);
 			item.bounds = new RectangleF(position, itemSize);
 			return itemSize;
 		}
 
 		static void RenderItem(Graphics graphics, SizeF minimumSize, NodeItem item, PointF position)
 		{
-			INodeItemRenderer itemRenderer;
-			if (!itemRenderers.TryGetValue(item.GetType(), out itemRenderer))
-				return;
-
-			itemRenderer.Render(graphics, minimumSize, item, position);
+			item.Render(graphics, minimumSize, position);
 		}
 
 		static void RenderConnector(Graphics graphics, RectangleF bounds, RenderState state)
@@ -179,10 +141,6 @@ namespace Graph
 			itemPosition.X += connectorSize + (int)GraphConstants.HorizontalSpacing;
 			if (node.Collapsed)
 			{
-				INodeItemRenderer itemRenderer;
-				if (!itemRenderers.TryGetValue(node.titleItem.GetType(), out itemRenderer))
-					return;
-
 				foreach (var item in node.Items)
 				{
 					var inputConnector	= item.Input;
@@ -300,10 +258,6 @@ namespace Graph
 			itemPosition.X += connectorSize + (int)GraphConstants.HorizontalSpacing;
 			if (node.Collapsed)
 			{
-				INodeItemRenderer itemRenderer;
-				if (!itemRenderers.TryGetValue(node.titleItem.GetType(), out itemRenderer))
-					return;
-
 				bool inputConnected = false;
 				var inputState	= RenderState.None;
 				var outputState = node.outputState;
@@ -489,8 +443,6 @@ namespace Graph
 
 		public static void RenderConnections(Graphics graphics, Node node, HashSet<NodeConnection> skipConnections, bool showLabels)
 		{
-			//var labelConnections	= new List<NodeConnection>();
-			//var positions			= new List<PointF>();
 			foreach (var connection in node.connections.Reverse<NodeConnection>())
 			{
 				if (connection == null ||
@@ -529,8 +481,6 @@ namespace Graph
 						!string.IsNullOrWhiteSpace(connection.Name))
 					{
 						var center = new PointF(centerX, centerY);
-						//labelConnections.Add(connection);
-						//positions.Add(center);
 						RenderLabel(graphics, connection, center, connection.state);
 					}
 				}
@@ -713,7 +663,7 @@ namespace Graph
 
 			float midLength		= (totalLength / 2.0f);// * 0.75f;
 			float startWidth	= extra_thickness + 0.75f;
-			float endWidth		= extra_thickness + (GraphConstants.ConnectorSize / 4.0f);
+			float endWidth		= extra_thickness + (GraphConstants.ConnectorSize / 3.5f);
 			float currentLength = 0;
 			var newPoints = new List<PointF>();
 			newPoints.Add(points[0]);

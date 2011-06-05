@@ -32,7 +32,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
@@ -50,8 +49,6 @@
     <Compile Include="GraphControl.Designer.cs">
       <DependentUpon>GraphControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="INodeItemDescription.cs" />
-    <Compile Include="INodeItemRenderer.cs" />
     <Compile Include="Items\NodeCheckboxItem.cs" />
     <Compile Include="Items\NodeColorItem.cs" />
     <Compile Include="Items\NodeImageItem.cs" />
@@ -62,8 +59,6 @@
     <Compile Include="NodeConnection.cs" />
     <Compile Include="NodeConnector.cs" />
     <Compile Include="NodeItem.cs" />
-    <Compile Include="NodeItemDescriptionAttribute.cs" />
-    <Compile Include="NodeItemRenderer.cs" />
     <Compile Include="NodeUtility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderState.cs" />
