@@ -39,10 +39,6 @@ namespace Graph.Items
 		}
 		#endregion
 
-		#region Hover
-		internal bool Hover { get; set; }
-		#endregion
-
 		#region Dragging
 		internal bool Dragging { get; set; }
 		#endregion
@@ -76,20 +72,6 @@ namespace Graph.Items
 			base.OnClick();
 			if (Clicked != null)
 				Clicked(this, new NodeItemEventArgs(this));
-			return true;
-		}
-
-		public override bool OnEnter()
-		{
-			base.OnEnter();
-			Hover = true;
-			return true;
-		}
-
-		public override bool OnLeave()
-		{
-			base.OnLeave();
-			Hover = false;
 			return true;
 		}
 
@@ -171,9 +153,9 @@ namespace Graph.Items
 
 			graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, textRect, GraphConstants.LeftTextStringFormat);
 
-			using (var path = NodeUtility.CreateRoundedRectangle(sliderRect.Size, sliderRect.Location))
+			using (var path = GraphRenderer.CreateRoundedRectangle(sliderRect.Size, sliderRect.Location))
 			{
-				if (this.Hover || this.Dragging)
+				if ((state & (RenderState.Hover | RenderState.Dragging)) != 0)
 					graphics.DrawPath(Pens.White, path);
 				else
 					graphics.DrawPath(Pens.Black, path);
@@ -181,7 +163,7 @@ namespace Graph.Items
 
 			graphics.FillRectangle(Brushes.LightGray, sliderBox.X, sliderBox.Y, sliderBox.Width, sliderBox.Height);
 
-			if (this.Hover || this.Dragging)
+			if ((state & (RenderState.Hover | RenderState.Dragging)) != 0)
 				graphics.DrawRectangle(Pens.White, sliderBox.X, sliderBox.Y, sliderBox.Width, sliderBox.Height);
 			else
 				graphics.DrawRectangle(Pens.Black, sliderBox.X, sliderBox.Y, sliderBox.Width, sliderBox.Height);

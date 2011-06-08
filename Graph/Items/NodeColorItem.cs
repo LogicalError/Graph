@@ -36,25 +36,7 @@ namespace Graph.Items
 		}
 		#endregion
 
-		#region Hover
-		internal bool Hover { get; set; }
-		#endregion
-
 		internal SizeF TextSize;
-
-		public override bool OnEnter()
-		{
-			base.OnEnter();
-			Hover = true;
-			return true;
-		}
-
-		public override bool OnLeave()
-		{
-			base.OnLeave();
-			Hover = false;
-			return true;
-		}
 
 		public override bool OnClick()
 		{
@@ -137,13 +119,13 @@ namespace Graph.Items
 
 			graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, rect, format);
 
-			using (var path = NodeUtility.CreateRoundedRectangle(colorBox.Size, colorBox.Location))
+			using (var path = GraphRenderer.CreateRoundedRectangle(colorBox.Size, colorBox.Location))
 			{
 				using (var brush = new SolidBrush(this.Color))
 				{
 					graphics.FillPath(brush, path);
 				}
-				if (this.Hover)
+				if ((state & RenderState.Hover) != 0)
 					graphics.DrawPath(Pens.White, path);
 				else
 					graphics.DrawPath(Pens.Black, path);

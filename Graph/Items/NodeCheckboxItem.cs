@@ -46,23 +46,6 @@ namespace Graph.Items
 		}
 		#endregion
 
-		#region Hover
-		internal bool Hover { get; set; }
-		#endregion
-
-		public override bool OnEnter()
-		{
-			base.OnEnter();
-			Hover = true;
-			return true;
-		}
-
-		public override bool OnLeave()
-		{
-			base.OnLeave();
-			Hover = false;
-			return true;
-		}
 
 		public override bool OnClick()
 		{
@@ -101,7 +84,7 @@ namespace Graph.Items
 			size.Width  = Math.Max(minimumSize.Width, size.Width);
 			size.Height = Math.Max(minimumSize.Height, size.Height);
 			
-			using (var path = NodeUtility.CreateRoundedRectangle(size, location))
+			using (var path = GraphRenderer.CreateRoundedRectangle(size, location))
 			{
 				var rect = new RectangleF(location, size);
 				if (this.Checked)
@@ -119,7 +102,7 @@ namespace Graph.Items
 				}
 				graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, rect, GraphConstants.CenterTextStringFormat);
 
-				if (this.Hover)
+				if ((state & RenderState.Hover) != 0)
 					graphics.DrawPath(Pens.White, path);
 				else	
 					graphics.DrawPath(Pens.Black, path);

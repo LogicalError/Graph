@@ -29,7 +29,7 @@ using System.Drawing.Drawing2D;
 
 namespace Graph
 {
-	public static class NodeUtility
+	public static class GraphRenderer
 	{
 		static IEnumerable<NodeItem> EnumerateNodeItems(Node node)
 		{
@@ -106,15 +106,15 @@ namespace Graph
 			var skipConnections = new HashSet<NodeConnection>();
 			foreach (var node in nodes.Reverse<Node>())
 			{
-				NodeUtility.PreRender(graphics, node);
+				GraphRenderer.PreRender(graphics, node);
 			}
 			foreach (var node in nodes.Reverse<Node>())
 			{
-				NodeUtility.RenderConnections(graphics, node, skipConnections, showLabels);
+				GraphRenderer.RenderConnections(graphics, node, skipConnections, showLabels);
 			}
 			foreach (var node in nodes.Reverse<Node>())
 			{
-				NodeUtility.Render(graphics, node);
+				GraphRenderer.Render(graphics, node);
 			}
 		}
 
@@ -329,116 +329,6 @@ namespace Graph
 					itemPosition.Y += item.bounds.Height + GraphConstants.ItemSpacing;
 				}
 			}
-		}
-
-		public static NodeItem FindItemAt(Node node, Point location)
-		{
-			if (node.itemsBounds == null ||
-				location.X < node.itemsBounds.Left ||
-				location.X > node.itemsBounds.Right)
-				return null;
-
-			foreach (var item in EnumerateNodeItems(node))
-			{
-				if (item.bounds.IsEmpty)
-					continue;
-
-				if (location.Y < item.bounds.Top)
-					break;
-
-				if (location.Y < item.bounds.Bottom)
-					return item;
-			}
-			return null;
-		}
-
-		internal static NodeConnector FindInputConnectorAt(Node node, Point location)
-		{
-			if (node.itemsBounds == null || node.Collapsed)
-				return null;
-
-			foreach (var inputConnector in node.inputConnectors)
-			{
-				if (inputConnector.bounds.IsEmpty)
-					continue;
-
-				if (inputConnector.bounds.Contains(location))
-					return inputConnector;
-			}
-			return null;
-		}
-
-		internal static NodeConnector FindOutputConnectorAt(Node node, Point location)
-		{
-			if (node.itemsBounds == null || node.Collapsed)
-				return null;
-
-			foreach (var outputConnector in node.outputConnectors)
-			{
-				if (outputConnector.bounds.IsEmpty)
-					continue;
-
-				if (outputConnector.bounds.Contains(location))
-					return outputConnector;
-			}
-			return null;
-		}
-
-		public static NodeConnection Connect(NodeConnector from, NodeConnector to)
-		{
-			if (from == null ||
-				to == null ||
-				from.Node == null ||
-				to.Node == null ||
-				!from.Enabled ||
-				!to.Enabled)
-				return null;
-
-			foreach (var other in from.Node.connections)
-			{
-				if (other.From == from &&
-					other.To == to)
-					return null;
-			}
-
-			foreach (var other in to.Node.connections)
-			{
-				if (other.From == from &&
-					other.To == to)
-					return null;
-			}
-
-			var connection = new NodeConnection();
-			connection.From	= from;
-			connection.To	= to;
-
-			from.Node.connections.Add(connection);
-			to.Node.connections.Add(connection);
-			return connection;
-		}
-
-		public static void Disconnect(NodeConnection connection)
-		{
-			if (connection == null)
-				return;
-
-			var from	= connection.From;
-			var to		= connection.To;
-			if (from != null && from.Node != null)
-				from.Node.connections.Remove(connection);
-			if (to != null && to.Node != null)
-				to.Node.connections.Remove(connection);
-
-			// Just in case somebody stored it somewhere ..
-			connection.From = null;
-			connection.To = null;
-		}
-		
-		public static void DisconnectAll(Node node)
-		{
-			var connections = node.connections.ToList();
-			foreach(var connection in connections)
-				Disconnect(connection);
 		}
 
 		public static void RenderConnections(Graphics graphics, Node node, HashSet<NodeConnection> skipConnections, bool showLabels)

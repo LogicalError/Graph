@@ -28,24 +28,24 @@ using System.Drawing;
 
 namespace Graph
 {
-	public class NodeItemEventArgs : EventArgs
+	public sealed class NodeItemEventArgs : EventArgs
 	{
 		public NodeItemEventArgs(NodeItem item) { Item = item; }
 		public NodeItem Item { get; private set; }
 	}
 
-	public abstract class NodeItem
+	public abstract class NodeItem : IElement
 	{
 		public NodeItem()
 		{
-			this.Input		= new NodeConnector(this, false);
-			this.Output		= new NodeConnector(this, false);
+			this.Input		= new NodeInputConnector(this, false);
+			this.Output		= new NodeOutputConnector(this, false);
 		}
 
 		public NodeItem(bool enableInput, bool enableOutput)
 		{
-			this.Input		= new NodeConnector(this, enableInput);
-			this.Output		= new NodeConnector(this, enableOutput);
+			this.Input		= new NodeInputConnector(this, enableInput);
+			this.Output		= new NodeOutputConnector(this, enableOutput);
 		}
 
 		public Node					Node			{ get; internal set; }
@@ -55,14 +55,15 @@ namespace Graph
 		public NodeConnector		Output			{ get; private set; }
 
 		internal RectangleF			bounds;
+		internal RenderState		state			= RenderState.None;
 
 		public virtual bool			OnClick()		{ return false; }
-		public virtual bool			OnEnter()		{ return false; }
-		public virtual bool			OnLeave()		{ return false; }
 		public virtual bool			OnStartDrag(PointF location) { return false; }
 		public virtual bool			OnDrag(PointF location)		 { return false; }		
 		public virtual bool			OnEndDrag() 				 { return false; }
 		internal abstract SizeF		Measure(IDeviceContext context);
 		internal abstract void		Render(Graphics graphics, SizeF minimumSize, PointF position);
+
+		public ElementType ElementType { get { return ElementType.NodeItem; } }
 	}
 }

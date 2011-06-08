@@ -28,21 +28,6 @@ namespace Graph.Items
 		public int? Width { get; set; }
 		public int? Height { get; set; }
 		public Image Image { get; set; }
-		internal bool Hover { get; set; }
-
-		public override bool OnEnter()
-		{
-			base.OnEnter();
-			Hover = true;
-			return true;
-		}
-
-		public override bool OnLeave()
-		{
-			base.OnLeave();
-			Hover = false;
-			return true;
-		}
 		
 		public override bool OnClick()
 		{
@@ -110,7 +95,7 @@ namespace Graph.Items
 				rect.Y--;
 			}
 
-			if (this.Hover)
+			if ((state & RenderState.Hover) != 0)
 				graphics.DrawRectangle(Pens.White, rect.Left, rect.Top, rect.Width, rect.Height);
 			else
 				graphics.DrawRectangle(Pens.Black, rect.Left, rect.Top, rect.Width, rect.Height);

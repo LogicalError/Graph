@@ -54,7 +54,11 @@ namespace Graph.Items
 
 			size.Height -= GraphConstants.TopHeight;
 			location.Y += GraphConstants.TopHeight;
-			graphics.DrawString(this.Title, SystemFonts.CaptionFont, Brushes.Black, new RectangleF(location, size), GraphConstants.TitleStringFormat);
+
+			if ((state & RenderState.Hover) == RenderState.Hover)
+				graphics.DrawString(this.Title, SystemFonts.CaptionFont, Brushes.White, new RectangleF(location, size), GraphConstants.TitleStringFormat);
+			else
+				graphics.DrawString(this.Title, SystemFonts.CaptionFont, Brushes.Black, new RectangleF(location, size), GraphConstants.TitleStringFormat);
 		}
 	}
 }

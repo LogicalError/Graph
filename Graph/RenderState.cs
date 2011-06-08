@@ -33,7 +33,8 @@ namespace Graph
 		None		= 0,
 		Connected	= 1,
 		Hover		= 2,
-		Dragging	= 4,
-		Focus		= 8
+		DraggedOver	= 4,
+		Dragging	= 8,
+		Focus		= 16
 	}
 }

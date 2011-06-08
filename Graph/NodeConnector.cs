@@ -28,7 +28,7 @@ using System.Drawing;
 
 namespace Graph
 {
-	public class NodeConnector 
+	public abstract class NodeConnector : IElement
 	{
 		public NodeConnector(NodeItem item, bool enabled) { Item = item; Enabled = enabled; }
 		public Node				Node		{ get { return Item.Node; } }
@@ -37,5 +37,19 @@ namespace Graph
 
 		internal RectangleF		bounds;
 		internal RenderState	state;
+
+		public abstract ElementType ElementType { get; }
+	}
+
+	public sealed class NodeInputConnector : NodeConnector
+	{
+		public NodeInputConnector(NodeItem item, bool enabled) : base(item, enabled) { }
+		public override ElementType ElementType { get { return ElementType.InputConnector; } }
+	}
+
+	public sealed class NodeOutputConnector : NodeConnector
+	{
+		public NodeOutputConnector(NodeItem item, bool enabled) : base(item, enabled) { }
+		public override ElementType ElementType { get { return ElementType.OutputConnector; } }
 	}
 }

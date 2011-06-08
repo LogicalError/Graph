@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ElementType.cs" />
     <Compile Include="GraphConstants.cs" />
     <Compile Include="GraphControl.cs">
       <SubType>Component</SubType>
@@ -49,6 +50,7 @@
     <Compile Include="GraphControl.Designer.cs">
       <DependentUpon>GraphControl.cs</DependentUpon>
     </Compile>
+    <Compile Include="IElement.cs" />
     <Compile Include="Items\NodeCheckboxItem.cs" />
     <Compile Include="Items\NodeColorItem.cs" />
     <Compile Include="Items\NodeImageItem.cs" />
@@ -59,7 +61,7 @@
     <Compile Include="NodeConnection.cs" />
     <Compile Include="NodeConnector.cs" />
     <Compile Include="NodeItem.cs" />
-    <Compile Include="NodeUtility.cs" />
+    <Compile Include="GraphRenderer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderState.cs" />
   </ItemGroup>

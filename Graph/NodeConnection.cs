@@ -30,20 +30,20 @@ using System.ComponentModel;
 
 namespace Graph
 {
-	public class NodeConnectionEventArgs : EventArgs
+	public sealed class NodeConnectionEventArgs : EventArgs
 	{
 		public NodeConnectionEventArgs(NodeConnection connection) { Connection = connection; }
 		public NodeConnection Connection { get; private set; }
 	}
 
-	public class AcceptNodeConnectionEventArgs : CancelEventArgs
+	public sealed class AcceptNodeConnectionEventArgs : CancelEventArgs
 	{
 		public AcceptNodeConnectionEventArgs(NodeConnection connection) { Connection = connection; }
 		public AcceptNodeConnectionEventArgs(NodeConnection connection, bool cancel) : base(cancel) { Connection = connection; }
 		public NodeConnection Connection { get; private set; }
 	}
 
-	public class NodeConnection
+	public class NodeConnection : IElement
 	{
 		public event EventHandler<NodeConnectionEventArgs>	DoubleClick;
 
@@ -58,5 +58,7 @@ namespace Graph
 
 
 		internal void			DoDoubleClick() { if (DoubleClick != null) DoubleClick(this, new NodeConnectionEventArgs(this)); }
+
+		public ElementType ElementType { get { return ElementType.Connection; } }
 	}
 }

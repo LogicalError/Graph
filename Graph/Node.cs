@@ -30,20 +30,20 @@ using Graph.Items;
 
 namespace Graph
 {
-	public class NodeEventArgs : EventArgs
+	public sealed class NodeEventArgs : EventArgs
 	{
 		public NodeEventArgs(Node node) { Node = node; }
 		public Node Node { get; private set; }
 	}
 
-	public class AcceptNodeEventArgs : CancelEventArgs
+	public sealed class AcceptNodeEventArgs : CancelEventArgs
 	{
 		public AcceptNodeEventArgs(Node node) { Node = node; }
 		public AcceptNodeEventArgs(Node node, bool cancel) : base(cancel) { Node = node; }
 		public Node Node { get; private set; }
 	}
 
-	public class Node
+	public class Node : IElement
 	{
 		public string			Title			{ get { return titleItem.Title; } set { titleItem.Title = value; } }
 
@@ -54,7 +54,7 @@ namespace Graph
 			get 
 			{
 				return (internalCollapsed && 
-						((state & RenderState.Dragging) == 0)) ||
+						((state & RenderState.DraggedOver) == 0)) ||
 						nodeItems.Count == 0;
 			} 
 			set 
@@ -112,5 +112,7 @@ namespace Graph
 			item.Node = null;
 			nodeItems.Remove(item);
 		}
+
+		public ElementType ElementType { get { return ElementType.Node; } }
 	}
 }

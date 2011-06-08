@@ -35,102 +35,241 @@ namespace Graph
 {
 	public partial class GraphControl : Control
 	{
+		#region Constructor
 		public GraphControl()
 		{
 			InitializeComponent();
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.Selectable | ControlStyles.UserPaint, true);
 		}
+		#endregion
 
 		public event EventHandler<AcceptNodeEventArgs>				NodeAdded;
 		public event EventHandler<AcceptNodeEventArgs>				NodeRemoved;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdded;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionRemoved;
 
-		readonly List<Node> graphNodes = new List<Node>();
 
-		NodeConnector			currentInputConnector;
-		NodeConnector			currentOutputConnector;
-		NodeItem				currentItem;
-		Node					currentNode;
-		NodeConnection			currentConnection;
-		bool					selecting = false;
-		bool					mouseMoved = false;
-
-		NodeConnector			hoverInputConnector;
-		NodeConnector			hoverOutputConnector;
-		Node					hoverNode;
-		NodeItem				hoverItem;
-		NodeConnection			hoverConnection;
-
-		bool					NodeHasFocus = false;
-
-		#region FocusNode
-		Node					privateFocusNode;
-		public Node				FocusNode 
+		#region DragElement
+		IElement internalDragElement;
+		IElement DragElement
 		{
-			get { return privateFocusNode; }
-			private set
+			get { return internalDragElement; }
+			set
 			{
-				if (privateFocusNode == value ||
-					(value != null && !graphNodes.Contains(value)))
+				if (internalDragElement == value)
 					return;
-				if (privateFocusNode != null)
-					privateFocusNode.state &= ~RenderState.Focus;
-				privateFocusNode = value;
-				if (privateFocusNode != null)
-				{
-					if (!NodeHasFocus)
-						FocusConnection = null;
-					NodeHasFocus = true;
-					privateFocusNode.state |= RenderState.Focus;
-
-					if (graphNodes[0] == privateFocusNode)
-					{
-						graphNodes.Remove(privateFocusNode);
-						graphNodes.Insert(0, privateFocusNode);
-					}
-				}
+				if (internalDragElement != null)
+					SetFlag(internalDragElement, RenderState.Dragging, false, false);
+				internalDragElement = value;
+				if (internalDragElement != null)
+					SetFlag(internalDragElement, RenderState.Dragging, true, false);
+			}
+		}
+		#endregion
+		
+		#region HoverElement
+		IElement internalHoverElement;
+		IElement HoverElement
+		{
+			get { return internalHoverElement; }
+			set
+			{
+				if (internalHoverElement == value)
+					return;
+				if (internalHoverElement != null)
+					SetFlag(internalHoverElement, RenderState.Hover, false, true);
+				internalHoverElement = value;
+				if (internalHoverElement != null)
+					SetFlag(internalHoverElement, RenderState.Hover, true, true);
+			}
+		}
+		#endregion
+		
+		#region FocusElement
+		IElement internalFocusElement;
+		public IElement FocusElement
+		{
+			get { return internalFocusElement; }
+			set
+			{
+				if (internalFocusElement == value)
+					return;
+				if (internalFocusElement != null)
+					SetFlag(internalFocusElement, RenderState.Focus, false, false);
+				internalFocusElement = value;
+				if (internalFocusElement != null)
+					SetFlag(internalFocusElement, RenderState.Focus, true, false);
 			}
 		}
 		#endregion
 
-		#region FocusConnection
-		NodeConnection privateFocusConnection;
-		public NodeConnection FocusConnection
-		{
-			get { return privateFocusConnection; }
-			private set
-			{
-				if (privateFocusConnection == value ||
-					(value != null && !graphNodes.Contains(value.From.Node)))
-					return;
-				if (privateFocusConnection != null)
-					privateFocusConnection.state &= ~RenderState.Focus;
-				privateFocusConnection = value;
-				if (privateFocusConnection != null)
-				{
-					FocusNode = privateFocusConnection.To.Node;
-					FocusNode = privateFocusConnection.From.Node;
-					FocusNode = null;
-					var connections = privateFocusConnection.To.Node.connections;
-					if (connections[0] != privateFocusConnection)
-					{
-						connections.Remove(privateFocusConnection);
-						connections.Insert(0, privateFocusConnection);
-					}
 
-					connections = privateFocusConnection.From.Node.connections;
-					if (connections[0] != privateFocusConnection)
+		#region SetFlag
+		RenderState SetFlag(RenderState original, RenderState flag, bool value)
+		{
+			if (value)
+				return original | flag;
+			else
+				return original & ~flag;
+		}
+		void SetFlag(IElement element, RenderState flag, bool value)
+		{
+			if (element == null)
+				return;
+
+			switch (element.ElementType)
+			{
+				case ElementType.Node:
+					var node = element as Node;
+					node.state = SetFlag(node.state, flag, value);
+					SetFlag(node.titleItem, flag, value);
+					break;
+
+				case ElementType.InputConnector:
+				case ElementType.OutputConnector:
+					var connector = element as NodeConnector;
+					connector.state = SetFlag(connector.state, flag, value);
+					break;
+
+				case ElementType.Connection:
+					var connection = element as NodeConnection;
+					connection.state = SetFlag(connection.state, flag, value);
+					break;
+
+				case ElementType.NodeItem:
+					var item = element as NodeItem;
+					item.state = SetFlag(item.state, flag, value);
+					break;
+			}
+		}
+		void SetFlag(IElement element, RenderState flag, bool value, bool setConnections)
+		{
+			if (element == null)
+				return;
+
+			switch (element.ElementType)
+			{
+				case ElementType.Node:
+					var node = element as Node;
+					node.state = SetFlag(node.state, flag, value);
+					SetFlag(node.titleItem, flag, value);
+					break;
+
+				case ElementType.InputConnector:
+				case ElementType.OutputConnector:
+					var connector = element as NodeConnector;
+					connector.state = SetFlag(connector.state, flag, value);
+					SetFlag(connector.Node, flag, value, setConnections);
+					break;
+
+				case ElementType.Connection:
+					var connection = element as NodeConnection;
+					connection.state = SetFlag(connection.state, flag, value);
+					if (setConnections)
 					{
-						connections.Remove(privateFocusConnection);
-						connections.Insert(0, privateFocusConnection);
+						if (connection.From != null)
+							connection.From.state = SetFlag(connection.From.state, flag, value);
+						if (connection.To != null)
+							connection.To.state = SetFlag(connection.To.state, flag, value);
+						//SetFlag(connection.From, flag, value, setConnections);
+						//SetFlag(connection.To, flag, value, setConnections);
 					}
-					NodeHasFocus = false;
-					privateFocusConnection.state |= RenderState.Focus;
-				}
+					break;
+
+				case ElementType.NodeItem:
+					var item = element as NodeItem;
+					item.state = SetFlag(item.state, flag, value);
+					SetFlag(item.Node, flag, value, setConnections);
+					break;
 			}
 		}
 		#endregion
+
+		#region BringElementToFront
+		public void BringElementToFront(IElement element)
+		{
+			if (element == null)
+				return;
+			switch (element.ElementType)
+			{
+				case ElementType.Connection:
+					var connection = element as NodeConnection;
+					BringElementToFront(connection.From);
+					BringElementToFront(connection.To);
+					
+					var connections = connection.From.Node.connections;
+					if (connections[0] != connection)
+					{
+						connections.Remove(connection);
+						connections.Insert(0, connection);
+					}
+					
+					connections = connection.To.Node.connections;
+					if (connections[0] != connection)
+					{
+						connections.Remove(connection);
+						connections.Insert(0, connection);
+					}
+					break;
+				case ElementType.Node:
+					var node = element as Node;
+					if (graphNodes[0] != node)
+					{
+						graphNodes.Remove(node);
+						graphNodes.Insert(0, node);
+					}
+					break;
+				case ElementType.InputConnector:
+				case ElementType.OutputConnector:
+					var connector = element as NodeConnector;
+					BringElementToFront(connector.Node);
+					break;
+				case ElementType.NodeItem:
+					var item = element as NodeItem;
+					BringElementToFront(item.Node);
+					break;
+			}
+		}
+		#endregion
+		
+		#region HasFocus
+		bool HasFocus(IElement element)
+		{
+			if (element == null)
+				return FocusElement == null;
+
+			if (FocusElement == null)
+				return false;
+
+			if (element.ElementType ==
+				FocusElement.ElementType)
+				return (element == FocusElement);
+			
+			switch (FocusElement.ElementType)
+			{
+				case ElementType.Connection:
+					var focusConnection = FocusElement as NodeConnection;
+					return (focusConnection.To == element ||
+							focusConnection.From == element ||
+							
+							((focusConnection.To != null &&
+							focusConnection.To.Node == element) ||
+							(focusConnection.From != null &&
+							focusConnection.From.Node == element)));
+				case ElementType.NodeItem:
+					var focusItem = FocusElement as NodeItem;
+					return (focusItem.Node == element);
+				case ElementType.InputConnector:
+				case ElementType.OutputConnector:
+					var focusConnector = FocusElement as NodeConnector;
+					return (focusConnector.Node == element);
+				default:
+				case ElementType.Node:
+					return false;
+			}
+		}
+		#endregion
+
 
 		#region ShowLabels
 		bool internalShowLabels = false;
@@ -150,17 +289,27 @@ namespace Graph
 		}
 		#endregion
 
-		bool					dragging = false;
+
+		#region Nodes
+		readonly List<Node> graphNodes = new List<Node>();
+		public IEnumerable<Node> Nodes { get { return graphNodes; } }
+		#endregion
+
+
+		IElement				internalDragOverElement;
+		bool					mouseMoved	= false;
+		bool					dragging	= false;
+
 		Point					lastLocation;
 		PointF					snappedLocation;
-
+		
 		PointF					translation = new PointF();
 		float					zoom = 1.0f;
 
-		readonly Matrix			transformation = new Matrix();
-		readonly Matrix			inverse_transformation = new Matrix();
 
 		#region UpdateMatrices
+		readonly Matrix			transformation = new Matrix();
+		readonly Matrix			inverse_transformation = new Matrix();
 		void UpdateMatrices()
 		{
 			if (zoom < 0.25f) zoom = 0.25f;
@@ -181,9 +330,6 @@ namespace Graph
 		#endregion
 
 
-		#region Nodes
-		public IEnumerable<Node> Nodes { get { return graphNodes; } }
-		#endregion
 
 		#region AddNode
 		public bool AddNode(Node node)
@@ -191,6 +337,7 @@ namespace Graph
 			if (node == null ||
 				graphNodes.Contains(node))
 				return false;
+
 			graphNodes.Insert(0, node);			
 			if (NodeAdded != null)
 			{
@@ -202,17 +349,22 @@ namespace Graph
 					return false;
 				}
 			}
-			FocusNode = node;
+
+			BringElementToFront(node);
+			FocusElement = node;
 			this.Invalidate();
 			return true;
 		}
 		#endregion
 
 		#region AddNodes
-		public void AddNodes(IEnumerable<Node> nodes)
+		public bool AddNodes(IEnumerable<Node> nodes)
 		{
+			if (nodes == null)
+				return false;
+
 			int		index		= 0;
-			bool	redraw		= false;
+			bool	modified	= false;
 			Node	lastNode	= null;
 			foreach (var node in nodes)
 			{
@@ -230,16 +382,18 @@ namespace Graph
 					if (eventArgs.Cancel)
 					{
 						graphNodes.Remove(node);
-						redraw = true;
+						modified = true;
 					} else
 						lastNode = node;
 				} else
 					lastNode = node;
 			}
 			if (lastNode != null)
-				FocusNode = lastNode;
-			if (redraw)
-				this.Invalidate();
+			{
+				BringElementToFront(lastNode);
+				FocusElement = lastNode;
+			}
+			return modified;
 		}
 		#endregion
 
@@ -248,6 +402,7 @@ namespace Graph
 		{
 			if (node == null)
 				return;
+
 			if (NodeRemoved != null)
 			{
 				var eventArgs = new AcceptNodeEventArgs(node);
@@ -255,23 +410,22 @@ namespace Graph
 				if (eventArgs.Cancel)
 					return;
 			}
-			if (node == FocusNode)
-				FocusNode = null;
-			if (FocusConnection != null &&
-				(FocusConnection.From.Node == node ||
-				FocusConnection.To.Node == node))
-				FocusConnection = null;
+			if (HasFocus(node))
+				FocusElement = null;
 
-			NodeUtility.DisconnectAll(node);
+			DisconnectAll(node);
 			graphNodes.Remove(node);
 			this.Invalidate();
 		}
 		#endregion
 
 		#region RemoveNodes
-		public void RemoveNodes(IEnumerable<Node> nodes)
+		public bool RemoveNodes(IEnumerable<Node> nodes)
 		{
-			bool redraw = false;
+			if (nodes == null)
+				return false;
+
+			bool modified = false;
 			foreach (var node in nodes)
 			{
 				if (node == null)
@@ -284,22 +438,16 @@ namespace Graph
 						continue;
 				}
 
-				if (node == FocusNode)
-					FocusNode = null;
-				if (FocusConnection != null &&
-					(FocusConnection.From.Node == node ||
-					FocusConnection.To.Node == node))
-					FocusConnection = null;
+				if (HasFocus(node))
+					FocusElement = null;
 
-				NodeUtility.DisconnectAll(node);
+				DisconnectAll(node);
 				graphNodes.Remove(node);
-				redraw = true;
+				modified = true;
 			}
-			if (redraw)
-				this.Invalidate();
+			return modified;
 		}
 		#endregion
-
 
 		#region Connect
 		public NodeConnection Connect(NodeItem from, NodeItem to)
@@ -309,16 +457,40 @@ namespace Graph
 
 		public NodeConnection Connect(NodeConnector from, NodeConnector to)
 		{
-			var connection = NodeUtility.Connect(from, to);
+			if (from      == null || to      == null ||
+				from.Node == null || to.Node == null ||
+				!from.Enabled || 
+				!to.Enabled)
+				return null;
 
-			if (connection != null &&
-				ConnectionAdded != null)
+			foreach (var other in from.Node.connections)
+			{
+				if (other.From == from &&
+					other.To == to)
+					return null;
+			}
+
+			foreach (var other in to.Node.connections)
+			{
+				if (other.From == from &&
+					other.To == to)
+					return null;
+			}
+
+			var connection = new NodeConnection();
+			connection.From = from;
+			connection.To = to;
+
+			from.Node.connections.Add(connection);
+			to.Node.connections.Add(connection);
+			
+			if (ConnectionAdded != null)
 			{
 				var eventArgs = new AcceptNodeConnectionEventArgs(connection);
 				ConnectionAdded(this, eventArgs);
 				if (eventArgs.Cancel)
 				{
-					NodeUtility.Disconnect(connection);
+					Disconnect(connection);
 					return null;
 				}
 			}
@@ -340,12 +512,146 @@ namespace Graph
 				if (eventArgs.Cancel)
 					return false;
 			}
-			
-			if (FocusConnection == connection)
-				FocusConnection = null;
 
-			NodeUtility.Disconnect(connection);
+			if (HasFocus(connection))
+				FocusElement = null;
+			
+			var from	= connection.From;
+			var to		= connection.To;
+			if (from != null && from.Node != null)
+				from.Node.connections.Remove(connection);
+			if (to != null && to.Node != null)
+				to.Node.connections.Remove(connection);
+
+			// Just in case somebody stored it somewhere ..
+			connection.From = null;
+			connection.To = null;
 			return true;
+		}
+		#endregion
+
+		#region DisconnectAll (private)
+		bool DisconnectAll(Node node)
+		{
+			bool modified = false;
+			var connections = node.connections.ToList();
+			foreach (var connection in connections)
+				modified = Disconnect(connection) ||
+					modified;
+			return modified;
+		}
+		#endregion
+
+
+		#region FindNodeItemAt
+		static NodeItem FindNodeItemAt(Node node, PointF location)
+		{
+			if (node.itemsBounds == null ||
+				location.X < node.itemsBounds.Left ||
+				location.X > node.itemsBounds.Right)
+				return null;
+
+			foreach (var item in node.Items)
+			{
+				if (item.bounds.IsEmpty)
+					continue;
+
+				if (location.Y < item.bounds.Top)
+					break;
+
+				if (location.Y < item.bounds.Bottom)
+					return item;
+			}
+			return null;
+		}
+		#endregion
+
+		#region FindInputConnectorAt
+		static NodeConnector FindInputConnectorAt(Node node, PointF location)
+		{
+			if (node.itemsBounds == null || node.Collapsed)
+				return null;
+
+			foreach (var inputConnector in node.inputConnectors)
+			{
+				if (inputConnector.bounds.IsEmpty)
+					continue;
+
+				if (inputConnector.bounds.Contains(location))
+					return inputConnector;
+			}
+			return null;
+		}
+		#endregion
+
+		#region FindOutputConnectorAt
+		static NodeConnector FindOutputConnectorAt(Node node, PointF location)
+		{
+			if (node.itemsBounds == null || node.Collapsed)
+				return null;
+
+			foreach (var outputConnector in node.outputConnectors)
+			{
+				if (outputConnector.bounds.IsEmpty)
+					continue;
+
+				if (outputConnector.bounds.Contains(location))
+					return outputConnector;
+			}
+			return null;
+		}
+		#endregion
+
+		#region FindElementAt
+		IElement FindElementAt(PointF location)
+		{
+			foreach (var node in graphNodes)
+			{
+				var inputConnector = FindInputConnectorAt(node, location);
+				if (inputConnector != null)
+					return inputConnector;
+
+				var outputConnector = FindOutputConnectorAt(node, location);
+				if (outputConnector != null)
+					return outputConnector;
+
+				if (node.bounds.Contains(location))
+				{
+					var item = FindNodeItemAt(node, location);
+					if (item != null)
+						return item;
+					return node;
+				}
+			}
+
+			var skipConnections		= new HashSet<NodeConnection>();
+			var foundConnections	= new List<NodeConnection>();
+			foreach (var node in graphNodes)
+			{
+				foreach (var connection in node.connections)
+				{
+					if (skipConnections.Add(connection)) // if we can add it, we haven't checked it yet
+					{
+						if (connection.bounds.Contains(location))
+							foundConnections.Insert(0, connection);
+					}
+				}
+			}
+			foreach (var connection in foundConnections)
+			{
+				if (connection.textBounds.Contains(location))
+					return connection;
+			}
+			foreach (var connection in foundConnections)
+			{
+				using (var region = GraphRenderer.GetConnectionRegion(connection))
+				{
+					if (region.IsVisible(location))
+						return connection;
+				}
+			}
+
+			return null;
 		}
 		#endregion
 
@@ -373,22 +679,33 @@ namespace Graph
 			
 			e.Graphics.Transform			= transformation;
 
-			NodeUtility.Render(e.Graphics, graphNodes, ShowLabels);
+			GraphRenderer.Render(e.Graphics, graphNodes, ShowLabels);
 			if (dragging)
 			{
 				var points = new PointF[] { snappedLocation };
 				inverse_transformation.TransformPoints(points);
 				var transformed_location = points[0];
 
-				if (currentOutputConnector != null)
-					NodeUtility.RenderOutputConnection(e.Graphics, currentOutputConnector, 
-						transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
-				if (currentInputConnector != null)
-					NodeUtility.RenderInputConnection(e.Graphics, currentInputConnector, 
-						transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+				if (DragElement != null)
+				{
+					switch (DragElement.ElementType)
+					{
+						case ElementType.OutputConnector:
+							var outputConnector = DragElement as NodeConnector;
+							GraphRenderer.RenderOutputConnection(e.Graphics, outputConnector, 
+								transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+							break;
+						case ElementType.InputConnector:
+							var inputConnector = DragElement as NodeConnector;
+							GraphRenderer.RenderInputConnection(e.Graphics, inputConnector, 
+								transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+							break;
+					}
+				}
 			}
 		}
 		#endregion
+
 
 
 		#region OnMouseWheel
@@ -406,113 +723,27 @@ namespace Graph
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
 			base.OnMouseUp(e);
+
+			dragging	= true;
+			mouseMoved	= false;
+			snappedLocation = lastLocation = e.Location;
 			
 			var points = new Point[] { e.Location };
 			inverse_transformation.TransformPoints(points);
-			var location = points[0];
+			var transformed_location = points[0];
 
-			selecting = false;
-			dragging = false;
-			mouseMoved = false;
-			snappedLocation = lastLocation = e.Location;
-
-			foreach(var node in graphNodes)
+			var element = FindElementAt(transformed_location);
+			if (element != null)
 			{
-				var inputConnector = NodeUtility.FindInputConnectorAt(node, location);
-				if (inputConnector != null)
-				{
-					if (currentItem != null)
-						currentItem.OnEndDrag();
-					FocusConnection			= null;
-					currentInputConnector	= inputConnector;
-					currentItem			= null;
-					currentNode				= null;
-					currentOutputConnector	= null;
-					currentConnection		= null;
-					currentInputConnector.state |= RenderState.Dragging;
-					selecting = true;
-					FocusNode = node;
-					this.Refresh();
-					return;
-				}
-				var outputConnector = NodeUtility.FindOutputConnectorAt(node, location);
-				if (outputConnector != null)
-				{
-					if (currentItem != null)
-						currentItem.OnEndDrag();
-					FocusConnection			= null;
-					currentOutputConnector	= outputConnector;
-					currentItem			= null;
-					currentNode				= null;
-					currentInputConnector	= null;
-					currentConnection		= null;
-					currentOutputConnector.state |= RenderState.Dragging;
-					currentOutputConnector.Node.state |= RenderState.Dragging;
-					selecting = true;
-					FocusNode = node;
-					this.Refresh();
-					return;
-				}
-				if (node.bounds.Contains(location))
-				{
-					var item = NodeUtility.FindItemAt(node, location);
-					if (item != null)
-					{
-						if (item.OnStartDrag(location))
-						{
-							currentItem			= item;
-							currentNode				= node;
-							currentInputConnector	= null;
-							currentOutputConnector	= null;
-							currentConnection		= null;
-							selecting = true;
-							FocusNode = node;
-							this.Refresh();
-							return;
-						}
-					}
-					if (currentItem != null)
-						currentItem.OnEndDrag();
-					currentItem			= null;
-					currentNode				= node;
-					currentInputConnector	= null;
-					currentOutputConnector	= null;
-					currentConnection		= null;
-
-					selecting = true;
-					FocusNode = node;
-					this.Refresh();
-					return;
-				}
+				var item = element as NodeItem;
+				if (item != null &&
+					!item.OnStartDrag(transformed_location))
+					element = item.Node;
+				FocusElement =
+				DragElement = element;
+				BringElementToFront(element);
+				this.Refresh();
 			}
-
-
-			foreach (var node in graphNodes)
-			{
-				foreach (var connection in node.connections)
-				{
-					if ((connection.state & RenderState.Hover) == RenderState.Hover)
-					{
-						FocusNode = node;
-
-						if (currentItem != null)
-							currentItem.OnEndDrag();
-						currentInputConnector	= null;
-						currentItem			= null;
-						currentNode				= null;
-						currentOutputConnector	= null;
-						FocusConnection			=
-						currentConnection		= connection;
-
-						connection.state |= RenderState.Dragging;
-						selecting = true;
-						this.Refresh();
-						return;
-					}
-				}
-			}
-
-			selecting = true;
 		}
 		#endregion
 
@@ -521,310 +752,189 @@ namespace Graph
 		{
 			base.OnMouseMove(e);
 
-			var points = new Point[] { e.Location };
-			inverse_transformation.TransformPoints(points);
-			var location = points[0];
 			var deltaX = (lastLocation.X - e.Location.X) / zoom;
 			var deltaY = (lastLocation.Y - e.Location.Y) / zoom;
 
+			var points = new Point[] { e.Location };
+			inverse_transformation.TransformPoints(points);
+			var transformed_location = points[0];
+
 			bool needRedraw = false;
 
-			if (selecting && !dragging)
-			{
-				if ((Math.Abs(deltaX) > 1) ||
-					(Math.Abs(deltaY) > 1))
-				{
-					dragging = true;
-					mouseMoved = true;
-				}
-			} else
 			if (dragging)
 			{
-				if ((Math.Abs(deltaX) > 0) ||
+				if (!mouseMoved)
+				{
+					if ((Math.Abs(deltaX) > 1) ||
+						(Math.Abs(deltaY) > 1))
+						mouseMoved = true;
+				}
+
+				if (mouseMoved &&
+					(Math.Abs(deltaX) > 0) ||
 					(Math.Abs(deltaY) > 0))
 				{
 					mouseMoved = true;
-					if (currentItem != null)
-					{
-						needRedraw = currentItem.OnDrag(location);
-						snappedLocation = lastLocation = e.Location;
-						FocusNode = currentNode;
-					} else
-					if (currentNode != null)
-					{
-						currentNode.Location = new Point((int)Math.Round(currentNode.Location.X - deltaX),
-														 (int)Math.Round(currentNode.Location.Y - deltaY));
-						snappedLocation = lastLocation = e.Location;
-						needRedraw = true;
-						FocusNode = currentNode;
-					} else
-					if (currentOutputConnector != null ||
-						currentInputConnector != null)
-					{
-						snappedLocation = lastLocation = e.Location;
-						needRedraw = true;
-					} else
-					if (currentConnection != null)
-					{
-						currentOutputConnector	= currentConnection.From;
-						FocusNode				= currentOutputConnector.Node;
-						if (Disconnect(currentConnection))
-						{
-							if (currentItem != null)
-								currentItem.OnEndDrag();
-							FocusConnection			= null;
-							currentItem			= null;
-							currentNode				= null;
-							currentInputConnector	= null;
-							currentConnection		= null;
-							currentOutputConnector.state |= RenderState.Dragging;
-							currentOutputConnector.Node.state  |= RenderState.Dragging;
-						} else
-						{
-							if (currentItem != null)
-								currentItem.OnEndDrag();
-							currentItem			= null;
-							currentNode				= null;
-							currentInputConnector	= null;
-							currentOutputConnector	= null;
-						}
-
-						selecting = true;
-						snappedLocation = lastLocation = e.Location;
-						needRedraw = true;
-					} else
-					{
+					if (DragElement == null)
+					{ 
+						// translate view
 						translation.X -= deltaX;
 						translation.Y -= deltaY;
 						snappedLocation = lastLocation = e.Location;
-						needRedraw = true;
 						this.Refresh();
 						return;
-					}
-				}
-			}
-
-			Node		foundHoverNode			= null;
-			NodeItem	foundHoverItem			= null;
-			bool		foundInputConnector		= false;
-			bool		foundOutputConnector	= false;
-			foreach(var node in graphNodes)
-			{
-				var inputConnector = NodeUtility.FindInputConnectorAt(node, location);
-				if (inputConnector != null)
-				{
-					if (hoverInputConnector != inputConnector)
+					} else
 					{
-						if (hoverInputConnector != null)
+						BringElementToFront(DragElement); 
+						switch (DragElement.ElementType)
 						{
-							if ((hoverInputConnector.state & RenderState.Hover) == RenderState.Hover)
+							case ElementType.Node:				// drag nodes
 							{
-								hoverInputConnector.state &= ~RenderState.Hover;
-								needRedraw = true;
+								var node = DragElement as Node;
+								node.Location	= new Point((int)Math.Round(node.Location.X - deltaX),
+															(int)Math.Round(node.Location.Y - deltaY));
+								snappedLocation = lastLocation = e.Location;
+								this.Refresh();
+								return;
 							}
-						}
-						if (!selecting || 
-							inputConnector == currentInputConnector ||
-							(currentOutputConnector != null && currentOutputConnector.Node != node))
-						{
-							hoverInputConnector = inputConnector;
-							if ((hoverInputConnector.state & RenderState.Hover) != RenderState.Hover)
+							case ElementType.NodeItem:			// drag in node-item
 							{
-								hoverInputConnector.state |= RenderState.Hover;
-								needRedraw = true;
+								var nodeItem = DragElement as NodeItem;
+								needRedraw		= nodeItem.OnDrag(transformed_location);
+								snappedLocation = lastLocation = e.Location;
+								break;
 							}
-						}
-					}
-					foundInputConnector = true;
-					foundHoverNode = node;
-					break;
-				}
-
-				var outputConnector = NodeUtility.FindOutputConnectorAt(node, location);
-				if (outputConnector != null)
-				{
-					if (hoverOutputConnector != outputConnector)
-					{
-						if (hoverOutputConnector != null)
-						{
-							if ((hoverOutputConnector.state & RenderState.Hover) == RenderState.Hover)
+							case ElementType.Connection:		// start dragging end of connection to new input connector
 							{
-								hoverOutputConnector.state &= ~RenderState.Hover;
-								needRedraw = true;
+								BringElementToFront(DragElement);
+								var connection			= DragElement as NodeConnection;
+								var outputConnector		= connection.From;
+								FocusElement			= outputConnector.Node;
+								if (Disconnect(connection))
+								{
+									DragElement	= outputConnector;
+								} else
+									DragElement = null;
+
+								goto case ElementType.OutputConnector;
 							}
-						}
-						if (!selecting ||
-							outputConnector == currentOutputConnector ||
-							(currentInputConnector != null && currentInputConnector.Node != node))
-						{
-							hoverOutputConnector = outputConnector;
-							if ((hoverOutputConnector.state & RenderState.Hover) != RenderState.Hover)
-							{
-								hoverOutputConnector.state |= RenderState.Hover;
+							case ElementType.InputConnector:	// drag connection from input or output connector
+							case ElementType.OutputConnector:
+							{	
+								snappedLocation = lastLocation = e.Location;
 								needRedraw = true;
-							}
-						}
-					}
-					foundOutputConnector = true;
-					foundHoverNode = node;
-					break;
-				}
-
-				if (node.bounds.Contains(location))
-				{
-					foundHoverNode = node;
-					break;
-				}
-			}
-
-			if (currentItem != null)
-				foundHoverNode = currentItem.Node;
-
-			if (foundHoverNode != hoverNode)
-			{
-				if (hoverNode != null)
-				{
-					if ((currentInputConnector  != null && currentInputConnector.Node  == hoverNode) ||
-						(currentOutputConnector != null && currentOutputConnector.Node == hoverNode))
-						hoverNode.state &= ~RenderState.Hover;
-					else
-						hoverNode.state &= ~(RenderState.Hover | RenderState.Dragging);
-					needRedraw = true;
-				}
-				hoverNode = foundHoverNode;
-			}
-
-			if (hoverNode != null)
-			{
-				var newState = hoverNode.state | RenderState.Hover;
-
-				if ((currentInputConnector  != null && currentInputConnector.Node  != hoverNode) ||
-					(currentOutputConnector != null && currentOutputConnector.Node != hoverNode))
-					newState |= RenderState.Dragging;
-				else
-				if (currentInputConnector  == null && currentOutputConnector == null)
-					newState &= ~RenderState.Dragging;
-				if (hoverNode.state != newState)
-				{
-					hoverNode.state = newState;
-					needRedraw = true;
-				}
-
-				var item = NodeUtility.FindItemAt(hoverNode, location);
-				if (item != null)
-					foundHoverItem = item;
-			}
-
-			if (foundHoverItem != hoverItem)
-			{
-				if (hoverItem != null)
-				{
-					needRedraw = hoverItem.OnLeave() || needRedraw;
-					hoverItem = null;
-				}
-				if (foundHoverItem != null)
-				{
-					if (foundHoverItem.OnEnter())
-					{
-						needRedraw = true;
-						hoverItem = foundHoverItem;
-					}
-				}					
-			}
-
-
-			if (!foundInputConnector &&
-				hoverInputConnector != null)
-			{
-				hoverInputConnector.state &= ~RenderState.Hover;
-				hoverInputConnector = null;
-				needRedraw = true;
-			} else
-			if (hoverInputConnector != null)
-			{
-				var pre_points = new PointF[] { 
-					new PointF((hoverInputConnector.bounds.Left + hoverInputConnector.bounds.Right) / 2,
-							   (hoverInputConnector.bounds.Top  + hoverInputConnector.bounds.Bottom) / 2) };
-				transformation.TransformPoints(pre_points);
-				snappedLocation = pre_points[0];
-			}
-
-			if (!foundOutputConnector &&
-				hoverOutputConnector != null)
-			{
-				hoverOutputConnector.state &= ~RenderState.Hover;
-				hoverOutputConnector = null;
-				needRedraw = true;
-			} else
-			if (hoverOutputConnector != null)
-			{
-				var pre_points = new PointF[] { 
-					new PointF( (hoverOutputConnector.bounds.Left + hoverOutputConnector.bounds.Right) / 2,
-							   (hoverOutputConnector.bounds.Top + hoverOutputConnector.bounds.Bottom) / 2) };
-				transformation.TransformPoints(pre_points);
-				snappedLocation = pre_points[0];
-			}
-
-			NodeConnection foundConnectionNode = null;
-			if (!dragging &&
-				foundHoverNode == null &&
-				currentItem == null &&
-				hoverOutputConnector == null &&
-				hoverInputConnector == null)
-			{
-				var skipConnections = new HashSet<NodeConnection>();
-				var foundConnections = new List<NodeConnection>();
-				foreach (var node in graphNodes)
-				{
-					foreach (var connection in node.connections.Reverse<NodeConnection>())
-					{
-						if (skipConnections.Add(connection)) // if we can add it, we haven't checked it yet
-						{
-							if (connection.bounds.Contains(location))
-								foundConnections.Add(connection);
-						}
-					}
-				}
-				foreach (var connection in foundConnections)
-				{
-					if (connection.textBounds.Contains(location))
-					{
-						foundConnectionNode = connection;
-						break;
-					}
-				}
-				if (foundConnectionNode == null)
-				{
-					foreach(var connection in foundConnections)
-					{
-						using (var region = NodeUtility.GetConnectionRegion(connection))
-						{
-							if (region.IsVisible(location))
-							{
-								foundConnectionNode = connection;
 								break;
 							}
 						}
 					}
 				}
-				if (foundConnectionNode != null &&
-					hoverConnection != foundConnectionNode)
-				{
-					if (hoverConnection != null)
-						hoverConnection.state &= ~RenderState.Hover;
-					hoverConnection = foundConnectionNode;
-					hoverConnection.state |= RenderState.Hover;
-					needRedraw = true;
-				}
 			}
 
-
-			if (foundConnectionNode == null &&
-				hoverConnection != null)
+			IElement draggingOverElement = null;
+			var element = FindElementAt(transformed_location);
+			if (element != null)
 			{
-				hoverConnection.state &= ~RenderState.Hover;
-				hoverConnection = null;
+				switch (element.ElementType)
+				{
+					default:
+						if (DragElement != null)
+							element = null;
+						break;
+
+					case ElementType.NodeItem:
+					{	
+						var item = element as NodeItem;
+						if (DragElement != null)
+						{
+							element = item.Node;
+							goto case ElementType.Node;
+						}
+						break;
+					}
+					case ElementType.Node:
+					{
+						var node = element as Node;
+						if (DragElement != null)
+						{
+							if (DragElement.ElementType == ElementType.InputConnector)
+							{
+								var dragConnector = DragElement as NodeConnector;
+								if (node.outputConnectors.Count == 1)
+								{
+									element = node.outputConnectors[0];
+									goto case ElementType.OutputConnector;
+								}
+
+								if (node != dragConnector.Node)
+									draggingOverElement = node;
+							} else
+							if (DragElement.ElementType == ElementType.OutputConnector)
+							{
+								var dragConnector = DragElement as NodeConnector;
+								if (node.inputConnectors.Count == 1)
+								{
+									element = node.inputConnectors[0];
+									goto case ElementType.InputConnector;
+								}
+
+								if (node != dragConnector.Node)
+									draggingOverElement = node;
+							}
+
+							//element = null;
+						}
+						break;
+					}
+					case ElementType.InputConnector:
+					case ElementType.OutputConnector:
+					{
+						var connector = element as NodeConnector;
+
+						if (DragElement != null &&
+							(DragElement.ElementType == ElementType.InputConnector ||
+							 DragElement.ElementType == ElementType.OutputConnector))
+						{
+							var dragConnector = DragElement as NodeConnector;
+							if (dragConnector.Node == connector.Node ||
+								DragElement.ElementType == element.ElementType)
+							{
+								element = null;
+								break;
+							}
+						}
+
+						var pre_points = new PointF[] { 
+							new PointF((connector.bounds.Left + connector.bounds.Right) / 2,
+									   (connector.bounds.Top  + connector.bounds.Bottom) / 2) };
+						transformation.TransformPoints(pre_points);
+						snappedLocation = pre_points[0];
+						draggingOverElement = connector.Node;
+						break;
+					}
+				}
+			}
+		
+			if (HoverElement != element)
+			{
+				HoverElement = element;
 				needRedraw = true;
+			}
+
+			if (internalDragOverElement != draggingOverElement)
+			{
+				if (internalDragOverElement != null)
+				{
+					SetFlag(internalDragOverElement, RenderState.DraggedOver, false);
+					needRedraw = true;
+				}
+
+				internalDragOverElement = draggingOverElement;
+
+				if (internalDragOverElement != null)
+				{
+					SetFlag(internalDragOverElement, RenderState.DraggedOver, true);
+					needRedraw = true;
+				}
 			}
 
 			if (needRedraw)
@@ -837,72 +947,71 @@ namespace Graph
 		{
 			base.OnMouseUp(e);
 
+			bool needRedraw = false;
 			try
 			{
-				if (!selecting)
-					return;
-
 				var points	 = new Point[] { e.Location };
 				inverse_transformation.TransformPoints(points);
-				var location = points[0];
+				var transformed_location = points[0];
 
-				if (currentInputConnector != null)
+				if (DragElement != null)
 				{
-					if (hoverOutputConnector != null &&
-						hoverOutputConnector.Node != currentInputConnector.Node)
-						FocusConnection =
-							Connect(hoverOutputConnector, currentInputConnector);
-					currentInputConnector.state &= ~RenderState.Dragging;
-					currentInputConnector = null;
-					this.Refresh();
-					return;
+					switch (DragElement.ElementType)
+					{
+						case ElementType.InputConnector:
+						{
+							var inputConnector	= (NodeConnector)DragElement;
+							var outputConnector = HoverElement as NodeOutputConnector;
+							if (outputConnector != null &&
+								outputConnector.Node != inputConnector.Node)
+								FocusElement = Connect(outputConnector, inputConnector);
+							needRedraw = true;
+							return;
+						}
+						case ElementType.OutputConnector:
+						{
+							var outputConnector = (NodeConnector)DragElement;
+							var inputConnector	= HoverElement as NodeInputConnector;
+							if (inputConnector != null &&
+								inputConnector.Node != outputConnector.Node)
+								FocusElement = Connect(outputConnector, inputConnector);
+							needRedraw = true;
+							return;
+						}
+						case ElementType.Connection:
+						{
+							needRedraw = true;
+							return;
+						}
+						case ElementType.Node:
+						{
+							needRedraw = true;
+							return;
+						}
+					}
 				}
-				if (currentOutputConnector != null)
+				if (DragElement != null ||
+					FocusElement != null)
 				{
-					if (hoverInputConnector != null &&
-						hoverInputConnector.Node != currentOutputConnector.Node)
-						FocusConnection = 
-							Connect(currentOutputConnector, hoverInputConnector);
-					currentOutputConnector.state &= ~RenderState.Dragging;
-					currentOutputConnector.Node.state &= ~RenderState.Dragging;
-					currentOutputConnector = null;
-					this.Refresh();
-					return;
-				}
-
-				if (currentConnection != null)
-				{
-					currentConnection.state &= ~RenderState.Dragging;
-					this.Refresh();
-					return;
-				}
-
-				if (currentNode != null)
-				{
-					return;
-				}
-
-				if (FocusNode != null ||
-					FocusConnection != null)
-				{
-					FocusNode = null;
-					FocusConnection = null;
-					this.Refresh();
-					return;
+					FocusElement = null;
+					needRedraw = true;
 				}
 			}
 			finally
 			{
-				if (currentItem != null)
-					currentItem.OnEndDrag();
-				currentItem			= null;
-				currentNode				= null;
-				currentInputConnector	= null;
-				currentOutputConnector	= null;
-				currentConnection		= null;
+				if (DragElement != null)
+				{
+					var nodeItem = DragElement as NodeItem;
+					if (nodeItem != null)
+						nodeItem.OnEndDrag();
+					DragElement = null;
+					needRedraw = true;
+				}
 
-				selecting = false;
 				dragging = false;
+				
+				if (needRedraw)
+					this.Refresh();
 			}
 		}
 		#endregion
@@ -913,23 +1022,30 @@ namespace Graph
 			base.OnDoubleClick(e);
 			if (mouseMoved)
 				return;
-			
-			if (currentConnection != null)
-			{
-				currentConnection.DoDoubleClick();
-				return;
-			}
 
-			if (hoverItem == null &&
-				currentNode != null)
-			{
-				if (!dragging)
-				{
-					currentNode.Collapsed = !currentNode.Collapsed;
-					FocusNode = currentNode;
-					this.Refresh();
-				}
+			var points = new Point[] { lastLocation };
+			inverse_transformation.TransformPoints(points);
+			var transformed_location = points[0];
+
+			var element = FindElementAt(transformed_location);
+			if (element == null)
 				return;
+
+			switch (element.ElementType)
+			{
+				case ElementType.Connection:
+					((NodeConnection)element).DoDoubleClick();
+					break;
+				case ElementType.NodeItem:
+					var item = element as NodeItem;
+					element = item.Node;
+					goto case ElementType.Node;
+				case ElementType.Node:
+					var node = element as Node;
+					node.Collapsed = !node.Collapsed;
+					FocusElement = node;
+					this.Refresh();
+					break;
 			}
 		}
 		#endregion
@@ -943,17 +1059,17 @@ namespace Graph
 
 			var points = new Point[] { lastLocation };
 			inverse_transformation.TransformPoints(points);
-			var location = points[0];
+			var transformed_location = points[0];
 
-			
-			foreach(var node in graphNodes)
+			var element = FindElementAt(transformed_location);
+			if (element == null)
+				return;
+
+			switch (element.ElementType)
 			{
-				if (!node.bounds.Contains(location))
-					continue;
-				
-				var item = NodeUtility.FindItemAt(node, location);
-				if (item != null)
+				case ElementType.NodeItem:
 				{
+					var item = element as NodeItem;
 					if (item.OnClick())
 					{
 						mouseMoved = true; // to avoid double-click from firing
@@ -963,25 +1079,27 @@ namespace Graph
 					break;
 				}
 			}
-
 		}
 		#endregion
 
+
+		#region OnKeyUp
 		protected override void OnKeyUp(KeyEventArgs e)
 		{
 			base.OnKeyUp(e);
 			if (e.KeyCode == Keys.Delete)
 			{
-				if (FocusNode != null)
+				if (FocusElement == null)
+					return;
+
+				switch (FocusElement.ElementType)
 				{
-					RemoveNode(FocusNode);
-				} else
-				if (FocusConnection != null)
-				{
-					Disconnect(FocusConnection);
+					case ElementType.Node:			RemoveNode(FocusElement as Node); break;
+					case ElementType.Connection:	Disconnect(FocusElement as NodeConnection); break;
 				}
 			}
 		}
+		#endregion
 
 
 		#region OnDragEnter
