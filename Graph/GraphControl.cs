@@ -167,10 +167,10 @@ namespace Graph
 					connection.state = SetFlag(connection.state, flag, value);
 					if (setConnections)
 					{
-						if (connection.From != null)
-							connection.From.state = SetFlag(connection.From.state, flag, value);
-						if (connection.To != null)
-							connection.To.state = SetFlag(connection.To.state, flag, value);
+						//if (connection.From != null)
+						//	connection.From.state = SetFlag(connection.From.state, flag, value);
+						//if (connection.To != null)
+						//	connection.To.state = SetFlag(connection.To.state, flag, value);
 						//SetFlag(connection.From, flag, value, setConnections);
 						//SetFlag(connection.To, flag, value, setConnections);
 					}
@@ -679,6 +679,7 @@ namespace Graph
 			
 			e.Graphics.Transform			= transformation;
 
+			GraphRenderer.PerformLayout(e.Graphics, graphNodes);
 			GraphRenderer.Render(e.Graphics, graphNodes, ShowLabels);
 			if (dragging)
 			{
@@ -830,6 +831,7 @@ namespace Graph
 				}
 			}
 
+			NodeConnector destinationConnector = null;
 			IElement draggingOverElement = null;
 			var element = FindElementAt(transformed_location);
 			if (element != null)
@@ -888,14 +890,14 @@ namespace Graph
 					case ElementType.InputConnector:
 					case ElementType.OutputConnector:
 					{
-						var connector = element as NodeConnector;
+						destinationConnector = element as NodeConnector;
 
 						if (DragElement != null &&
 							(DragElement.ElementType == ElementType.InputConnector ||
 							 DragElement.ElementType == ElementType.OutputConnector))
 						{
 							var dragConnector = DragElement as NodeConnector;
-							if (dragConnector.Node == connector.Node ||
+							if (dragConnector.Node == destinationConnector.Node ||
 								DragElement.ElementType == element.ElementType)
 							{
 								element = null;
@@ -903,12 +905,7 @@ namespace Graph
 							}
 						}
 
-						var pre_points = new PointF[] { 
-							new PointF((connector.bounds.Left + connector.bounds.Right) / 2,
-									   (connector.bounds.Top  + connector.bounds.Bottom) / 2) };
-						transformation.TransformPoints(pre_points);
-						snappedLocation = pre_points[0];
-						draggingOverElement = connector.Node;
+						draggingOverElement = destinationConnector.Node;
 						break;
 					}
 				}
@@ -925,6 +922,9 @@ namespace Graph
 				if (internalDragOverElement != null)
 				{
 					SetFlag(internalDragOverElement, RenderState.DraggedOver, false);
+					var node = GetElementNode(internalDragOverElement);
+					if (node != null)
+						GraphRenderer.PerformLayout(this.CreateGraphics(), node);
 					needRedraw = true;
 				}
 
@@ -933,12 +933,45 @@ namespace Graph
 				if (internalDragOverElement != null)
 				{
 					SetFlag(internalDragOverElement, RenderState.DraggedOver, true);
+					var node = GetElementNode(internalDragOverElement);
+					if (node != null)
+						GraphRenderer.PerformLayout(this.CreateGraphics(), node);
 					needRedraw = true;
 				}
 			}
 
+			if (destinationConnector != null)
+			{
+				if (!destinationConnector.bounds.IsEmpty)
+				{
+					var pre_points = new PointF[] { 
+						new PointF((destinationConnector.bounds.Left + destinationConnector.bounds.Right) / 2,
+									(destinationConnector.bounds.Top  + destinationConnector.bounds.Bottom) / 2) };
+					transformation.TransformPoints(pre_points);
+					snappedLocation = pre_points[0];
+				}
+			}
+						
+
 			if (needRedraw)
 				this.Refresh();
+		}
+		#endregion
+
+		#region GetElementNode
+		private Node GetElementNode(IElement element)
+		{
+			if (element == null)
+				return null;
+			switch (element.ElementType)
+			{
+				default:
+				case ElementType.Connection:		return null;
+				case ElementType.InputConnector:	return ((NodeInputConnector)element).Node;
+				case ElementType.OutputConnector:	return ((NodeInputConnector)element).Node;
+				case ElementType.NodeItem:			return ((NodeItem)element).Node;
+				case ElementType.Node:				return (Node)element;
+			}
 		}
 		#endregion
 
@@ -979,10 +1012,7 @@ namespace Graph
 							return;
 						}
 						case ElementType.Connection:
-						{
-							needRedraw = true;
-							return;
-						}
+						case ElementType.NodeItem:
 						case ElementType.Node:
 						{
 							needRedraw = true;
@@ -1017,10 +1047,11 @@ namespace Graph
 		#endregion
 
 		#region OnDoubleClick
+		bool ignoreDoubleClick = false;
 		protected override void OnDoubleClick(EventArgs e)
 		{
 			base.OnDoubleClick(e);
-			if (mouseMoved)
+			if (mouseMoved || ignoreDoubleClick)
 				return;
 
 			var points = new Point[] { lastLocation };
@@ -1053,6 +1084,7 @@ namespace Graph
 		#region OnClick
 		protected override void  OnClick(EventArgs e)
 		{
+			ignoreDoubleClick = false;
  			base.OnClick(e);
 			if (mouseMoved)
 				return;
@@ -1072,7 +1104,7 @@ namespace Graph
 					var item = element as NodeItem;
 					if (item.OnClick())
 					{
-						mouseMoved = true; // to avoid double-click from firing
+						ignoreDoubleClick = true; // to avoid double-click from firing
 						this.Refresh();
 						return;
 					}

@@ -33,6 +33,9 @@ namespace Graph
 	{
 		static IEnumerable<NodeItem> EnumerateNodeItems(Node node)
 		{
+			if (node == null)
+				yield break;
+
 			yield return node.titleItem;
 			if (node.Collapsed)
 				yield break;
@@ -43,6 +46,9 @@ namespace Graph
 
 		public static SizeF Measure(IDeviceContext context, Node node)
 		{
+			if (node == null)
+				return SizeF.Empty;
+
 			SizeF size = Size.Empty;
 			size.Height = //(int)NodeConstants.TopHeight + 
 				(int)GraphConstants.BottomHeight;
@@ -101,13 +107,17 @@ namespace Graph
 			}
 		}
 
+		public static void PerformLayout(Graphics graphics, IEnumerable<Node> nodes)
+		{
+			foreach (var node in nodes.Reverse<Node>())
+			{
+				GraphRenderer.PerformLayout(graphics, node);
+			}
+		}
+
 		public static void Render(Graphics graphics, IEnumerable<Node> nodes, bool showLabels)
 		{
 			var skipConnections = new HashSet<NodeConnection>();
-			foreach (var node in nodes.Reverse<Node>())
-			{
-				GraphRenderer.PreRender(graphics, node);
-			}
 			foreach (var node in nodes.Reverse<Node>())
 			{
 				GraphRenderer.RenderConnections(graphics, node, skipConnections, showLabels);
@@ -118,8 +128,10 @@ namespace Graph
 			}
 		}
 
-		public static void PreRender(Graphics graphics, Node node)
+		public static void PerformLayout(Graphics graphics, Node node)
 		{
+			if (node == null)
+				return;
 			var size		= Measure(graphics, node);
 			var position	= node.Location;
 			node.bounds		= new RectangleF(position, size);
