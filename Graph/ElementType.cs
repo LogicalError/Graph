@@ -33,6 +33,7 @@ namespace Graph
 		NodeItem,
 		InputConnector,
 		OutputConnector,
-		Connection
+		Connection,
+		NodeSelection
 	}
 }

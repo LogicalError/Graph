@@ -119,11 +119,24 @@ namespace Graph
 
 			switch (element.ElementType)
 			{
+				case ElementType.NodeSelection:
+				{
+					var selection = element as NodeSelection;
+					foreach (var node in selection.Nodes)
+					{
+						node.state = SetFlag(node.state, flag, value);
+						SetFlag(node.titleItem, flag, value);
+					}
+					break;
+				}
+
 				case ElementType.Node:
+				{
 					var node = element as Node;
 					node.state = SetFlag(node.state, flag, value);
 					SetFlag(node.titleItem, flag, value);
 					break;
+				}
 
 				case ElementType.InputConnector:
 				case ElementType.OutputConnector:
@@ -149,11 +162,24 @@ namespace Graph
 
 			switch (element.ElementType)
 			{
+				case ElementType.NodeSelection:
+				{
+					var selection = element as NodeSelection;
+					foreach (var node in selection.Nodes)
+					{
+						node.state = SetFlag(node.state, flag, value);
+						SetFlag(node.titleItem, flag, value);
+					}
+					break;
+				}
+
 				case ElementType.Node:
+				{
 					var node = element as Node;
 					node.state = SetFlag(node.state, flag, value);
 					SetFlag(node.titleItem, flag, value);
 					break;
+				}
 
 				case ElementType.InputConnector:
 				case ElementType.OutputConnector:
@@ -211,7 +237,21 @@ namespace Graph
 						connections.Insert(0, connection);
 					}
 					break;
+				case ElementType.NodeSelection:
+				{
+					var selection = element as NodeSelection;
+					foreach(var node in selection.Nodes.Reverse<Node>())
+					{
+						if (graphNodes[0] != node)
+						{
+							graphNodes.Remove(node);
+							graphNodes.Insert(0, node);
+						}
+					}
+					break;
+				}
 				case ElementType.Node:
+				{
 					var node = element as Node;
 					if (graphNodes[0] != node)
 					{
@@ -219,6 +259,7 @@ namespace Graph
 						graphNodes.Insert(0, node);
 					}
 					break;
+				}
 				case ElementType.InputConnector:
 				case ElementType.OutputConnector:
 					var connector = element as NodeConnector;
@@ -263,6 +304,16 @@ namespace Graph
 				case ElementType.OutputConnector:
 					var focusConnector = FocusElement as NodeConnector;
 					return (focusConnector.Node == element);
+				case ElementType.NodeSelection:
+				{
+					var selection = FocusElement as NodeSelection;
+					foreach (var node in selection.Nodes)
+					{
+						if (node == element)
+							return true;
+					}
+					return false;
+				}
 				default:
 				case ElementType.Node:
 					return false;
@@ -296,10 +347,23 @@ namespace Graph
 		#endregion
 
 
+		enum CommandMode
+		{
+			MarqueSelection,
+			TranslateView,
+			ScaleView,
+			Edit
+		}
+
+
 		IElement				internalDragOverElement;
-		bool					mouseMoved	= false;
-		bool					dragging	= false;
-		bool					abortDrag	= false;
+		bool					mouseMoved		= false;
+		bool					dragging		= false;
+		bool					abortDrag		= false;
+		readonly List<Node>		selectedNodes	= new List<Node>();
+		readonly List<Node>		unselectedNodes	= new List<Node>();
+		CommandMode				command			= CommandMode.Edit;
+		MouseButtons			currentButtons;
 
 		Point					lastLocation;
 		PointF					snappedLocation;
@@ -657,19 +721,50 @@ namespace Graph
 			return null;
 		}
 		#endregion
+		
+		#region GetTransformedLocation
+		PointF GetTransformedLocation()
+		{
+			var points = new PointF[] { snappedLocation };
+			inverse_transformation.TransformPoints(points);
+			var transformed_location = points[0];
 
+			if (abortDrag)
+			{
+				transformed_location = originalLocation;
+			}
+			return transformed_location;
+		}
+		#endregion
+
+		#region GetMarqueRectangle
+		RectangleF GetMarqueRectangle()
+		{
+			var transformed_location = GetTransformedLocation();
+			var x1 = transformed_location.X;
+			var y1 = transformed_location.Y;
+			var x2 = originalLocation.X;
+			var y2 = originalLocation.Y;
+			var x = Math.Min(x1, x2);
+			var y = Math.Min(y1, y2);
+			var width = Math.Max(x1, x2) - x;
+			var height = Math.Max(y1, y2) - y;
+			return new RectangleF(x,y,width,height);
+		}				
+		#endregion
 
 		#region OnPaint
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			base.OnPaint(e);
 
-			if (this.graphNodes.Count == 0)
-				return;
 			if (e.Graphics == null)
 				return;
 
 			e.Graphics.Clear(Color.White);
+
+			if (this.graphNodes.Count == 0)
+				return;
 
 			UpdateMatrices();
 			e.Graphics.PageUnit = GraphicsUnit.Pixel;
@@ -682,33 +777,38 @@ namespace Graph
 			
 			e.Graphics.Transform			= transformation;
 
+			
+			var transformed_location = GetTransformedLocation();
+			if (command == CommandMode.MarqueSelection)
+			{
+				var marque_rectangle = GetMarqueRectangle();
+				e.Graphics.FillRectangle(SystemBrushes.ActiveCaption, marque_rectangle);
+				e.Graphics.DrawRectangle(Pens.DarkGray, marque_rectangle.X, marque_rectangle.Y, marque_rectangle.Width, marque_rectangle.Height);
+			}
+
 			GraphRenderer.PerformLayout(e.Graphics, graphNodes);
 			GraphRenderer.Render(e.Graphics, graphNodes, ShowLabels);
-			if (dragging)
+			
+			if (command == CommandMode.Edit)
 			{
-				var points = new PointF[] { snappedLocation };
-				inverse_transformation.TransformPoints(points);
-				var transformed_location = points[0];
-
-				if (abortDrag)
+				if (dragging)
 				{
-					transformed_location = originalLocation;
-				}
 
-				if (DragElement != null)
-				{
-					switch (DragElement.ElementType)
+					if (DragElement != null)
 					{
-						case ElementType.OutputConnector:
-							var outputConnector = DragElement as NodeConnector;
-							GraphRenderer.RenderOutputConnection(e.Graphics, outputConnector, 
-								transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
-							break;
-						case ElementType.InputConnector:
-							var inputConnector = DragElement as NodeConnector;
-							GraphRenderer.RenderInputConnection(e.Graphics, inputConnector, 
-								transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
-							break;
+						switch (DragElement.ElementType)
+						{
+							case ElementType.OutputConnector:
+								var outputConnector = DragElement as NodeConnector;
+								GraphRenderer.RenderOutputConnection(e.Graphics, outputConnector, 
+									transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+								break;
+							case ElementType.InputConnector:
+								var inputConnector = DragElement as NodeConnector;
+								GraphRenderer.RenderInputConnection(e.Graphics, inputConnector, 
+									transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+								break;
+						}
 					}
 				}
 			}
@@ -733,6 +833,12 @@ namespace Graph
 		{
 			base.OnMouseUp(e);
 
+			if (currentButtons != MouseButtons.None)
+				return;
+
+			currentButtons |= e.Button;
+			selectedNodes.Clear();
+			unselectedNodes.Clear();
 			dragging	= true;
 			abortDrag	= false;
 			mouseMoved	= false;
@@ -744,27 +850,119 @@ namespace Graph
 
 			originalLocation = transformed_location;
 
-			var element = FindElementAt(transformed_location);
-			if (element != null)
+			if (e.Button == MouseButtons.Left)
 			{
-				var item = element as NodeItem;
-				if (item != null)
+				var element = FindElementAt(transformed_location);
+				if (element != null)
 				{
-					if (!item.OnStartDrag(transformed_location, out originalLocation))
+					var selection = FocusElement as NodeSelection;				
+					var element_node = element as Node;
+					if (element_node != null)
 					{
-						element = item.Node;
-						originalLocation = transformed_location;
+						switch (ModifierKeys)
+						{
+							case Keys.None:
+							{
+								if (selection != null &&
+									selection.Nodes.Contains(element_node))
+								{
+									element = selection;
+								}
+								break;
+							}
+							case Keys.Shift:
+							{
+								if (selection != null)
+								{
+									if (!selection.Nodes.Contains(element_node))
+									{
+										var nodes = selection.Nodes.ToList();
+										nodes.Add(element_node);
+										element = new NodeSelection(nodes);
+									}
+								} else
+								{
+									var focus_node = FocusElement as Node;
+									if (focus_node != null)
+										element = new NodeSelection(new Node[] { focus_node, element_node });
+								}
+								break;
+							}
+							case Keys.Control:
+							{
+								if (selection != null)
+								{
+									if (selection.Nodes.Contains(element_node))
+									{
+										var nodes = selection.Nodes.ToList();
+										nodes.Remove(element_node);
+										element = new NodeSelection(nodes);
+									} else
+									{
+										var nodes = selection.Nodes.ToList();
+										nodes.Add(element_node);
+										element = new NodeSelection(nodes);
+									}
+								} else
+								{
+									var focus_node = FocusElement as Node;
+									if (focus_node != null)
+									{
+										if (focus_node == element_node)
+											element = null;
+										else
+											element = new NodeSelection(new Node[] { focus_node, element_node });
+									}
+								}
+								break;
+							}
+							case Keys.Alt:
+							{
+								if (selection != null)
+								{
+									if (selection.Nodes.Contains(element_node))
+									{
+										var nodes = selection.Nodes.ToList();
+										nodes.Remove(element_node);
+										element = new NodeSelection(nodes);
+									}
+								} else
+								{
+									var focus_node = FocusElement as Node;
+									if (focus_node != null)
+										element = null;
+								}
+								break;
+							}
+						}
 					}
+				
+
+					var item = element as NodeItem;
+					if (item != null)
+					{
+						if (!item.OnStartDrag(transformed_location, out originalLocation))
+						{
+							element = item.Node;
+							originalLocation = transformed_location;
+						}
+					} else
+					{
+						var connection = element as NodeConnection;
+						if (connection != null)
+							originalLocation = connection.To.Center;
+					}
+					FocusElement =
+					DragElement = element;
+					BringElementToFront(element);
+					this.Refresh();
+					command = CommandMode.Edit;
 				} else
-				{
-					var connection = element as NodeConnection;
-					if (connection != null)
-						originalLocation = connection.To.Center;
-				}
-				FocusElement =
-				DragElement = element;
-				BringElementToFront(element);
-				this.Refresh();
+					command = CommandMode.MarqueSelection;
+			} else
+			{
+				DragElement = null;
+				command = CommandMode.TranslateView;
 			}
 
 			points = new PointF[] { originalLocation };
@@ -777,6 +975,17 @@ namespace Graph
 		protected override void OnMouseMove(MouseEventArgs e)
 		{
 			base.OnMouseMove(e);
+			
+			if (DragElement == null &&
+				command != CommandMode.MarqueSelection &&
+				(currentButtons & MouseButtons.Right) != 0)
+			{
+				if (currentButtons == MouseButtons.Right)
+					command = CommandMode.TranslateView;
+				else
+				if (currentButtons == (MouseButtons.Right | MouseButtons.Left))
+					command = CommandMode.ScaleView;
+			}
 
 			Point currentLocation;
 			PointF transformed_location;
@@ -802,6 +1011,104 @@ namespace Graph
 			
 
 			bool needRedraw = false;
+			switch (command)
+			{
+				case CommandMode.ScaleView:
+					if (!mouseMoved)
+					{
+						if ((Math.Abs(deltaY) > 1))
+							mouseMoved = true;
+					}
+
+					if (mouseMoved &&
+						(Math.Abs(deltaY) > 0))
+					{
+						zoom *= (float)Math.Pow(2, deltaY / 100.0f);
+						Cursor.Position = this.PointToScreen(lastLocation);
+						snappedLocation = //lastLocation = 
+							currentLocation;
+						this.Refresh();
+					}
+					return;
+				case CommandMode.TranslateView:
+				{
+					if (!mouseMoved)
+					{
+						if ((Math.Abs(deltaX) > 1) ||
+							(Math.Abs(deltaY) > 1))
+							mouseMoved = true;
+					}
+
+					if (mouseMoved &&
+						(Math.Abs(deltaX) > 0) ||
+						(Math.Abs(deltaY) > 0))
+					{
+						translation.X -= deltaX * zoom;
+						translation.Y -= deltaY * zoom;
+						snappedLocation = lastLocation = currentLocation;
+						this.Refresh();
+					}
+					return;
+				}
+				case CommandMode.MarqueSelection:
+					if (!mouseMoved)
+					{
+						if ((Math.Abs(deltaX) > 1) ||
+							(Math.Abs(deltaY) > 1))
+							mouseMoved = true;
+					}
+
+					if (mouseMoved &&
+						(Math.Abs(deltaX) > 0) ||
+						(Math.Abs(deltaY) > 0))
+					{
+						var marque_rectangle = GetMarqueRectangle();
+												
+						foreach (var node in selectedNodes)
+							SetFlag(node, RenderState.Focus, false, false);
+
+						foreach (var node in unselectedNodes)
+							SetFlag(node, RenderState.Focus, true, false);
+
+						if (!abortDrag)
+						{
+							foreach (var node in graphNodes)
+							{
+								if (marque_rectangle.Contains(node.bounds))
+								{
+									if ((node.state & RenderState.Focus) == 0 &&
+										(ModifierKeys != Keys.Alt))
+									{
+										SetFlag(node, RenderState.Focus, true, false);
+										selectedNodes.Add(node);
+									}
+									if ((node.state & RenderState.Focus) != 0 &&
+										(ModifierKeys == Keys.Alt))
+									{
+										SetFlag(node, RenderState.Focus, false, false);
+										unselectedNodes.Add(node);
+									}
+								} else
+								{
+									if ((node.state & RenderState.Focus) == RenderState.Focus &&
+										(ModifierKeys == Keys.None))
+									{
+										SetFlag(node, RenderState.Focus, false, false);
+										unselectedNodes.Add(node);
+									}
+								}
+							}
+						}
+
+						snappedLocation = lastLocation = currentLocation;
+						this.Refresh();
+					}
+					return;
+
+				default:
+				case CommandMode.Edit:
+					break;
+			}
 
 			if (dragging)
 			{
@@ -817,20 +1124,24 @@ namespace Graph
 					(Math.Abs(deltaY) > 0))
 				{
 					mouseMoved = true;
-					if (DragElement == null)
-					{ 
-						// translate view
-						translation.X -= deltaX;
-						translation.Y -= deltaY;
-						snappedLocation = lastLocation = currentLocation;
-						this.Refresh();
-						return;
-					} else
+					if (DragElement != null)
 					{
 						BringElementToFront(DragElement); 
 						switch (DragElement.ElementType)
 						{
-							case ElementType.Node:				// drag nodes
+							case ElementType.NodeSelection:		// drag nodes
+							{
+								var selection = DragElement as NodeSelection;
+								foreach (var node in selection.Nodes)
+								{
+									node.Location = new Point(	(int)Math.Round(node.Location.X - deltaX),
+																(int)Math.Round(node.Location.Y - deltaY));
+								}
+								snappedLocation = lastLocation = currentLocation;
+								this.Refresh();
+								return;
+							}
+							case ElementType.Node:				// drag single node
 							{
 								var node = DragElement as Node;
 								node.Location	= new Point((int)Math.Round(node.Location.X - deltaX),
@@ -1021,6 +1332,7 @@ namespace Graph
 		{
 			base.OnMouseUp(e);
 
+			currentButtons &= ~e.Button;
 			bool needRedraw = false;
 			try
 			{
@@ -1042,6 +1354,35 @@ namespace Graph
 					transformed_location = points[0];
 				}
 
+
+				switch (command)
+				{
+					case CommandMode.MarqueSelection:
+						needRedraw = true;
+
+						if (abortDrag)
+						{
+							foreach (var node in selectedNodes)
+								SetFlag(node, RenderState.Focus, false, false);
+
+							foreach (var node in unselectedNodes)
+								SetFlag(node, RenderState.Focus, true, false);
+						}
+														
+						if (!abortDrag)
+							FocusElement = new NodeSelection(
+								// select all focussed nodes
+								from node in graphNodes where (node.state & RenderState.Focus) == RenderState.Focus select node);
+						return;
+					case CommandMode.ScaleView:
+						return;
+					case CommandMode.TranslateView:
+						return;
+
+					default:
+					case CommandMode.Edit:
+						break;
+				}
 				if (DragElement != null)
 				{
 					switch (DragElement.ElementType)
@@ -1066,6 +1407,8 @@ namespace Graph
 							needRedraw = true;
 							return;
 						}
+						default:
+						case ElementType.NodeSelection:
 						case ElementType.Connection:
 						case ElementType.NodeItem:
 						case ElementType.Node:
@@ -1094,6 +1437,9 @@ namespace Graph
 				}
 
 				dragging = false;
+				command = CommandMode.Edit;
+				selectedNodes.Clear();
+				unselectedNodes.Clear();
 				
 				if (needRedraw)
 					this.Refresh();
@@ -1106,7 +1452,8 @@ namespace Graph
 		protected override void OnDoubleClick(EventArgs e)
 		{
 			base.OnDoubleClick(e);
-			if (mouseMoved || ignoreDoubleClick)
+			if (mouseMoved || ignoreDoubleClick || 
+				ModifierKeys != Keys.None)
 				return;
 
 			var points = new Point[] { lastLocation };
@@ -1155,12 +1502,20 @@ namespace Graph
 
 			var element = FindElementAt(transformed_location);
 			if (element == null)
+			{
+				ignoreDoubleClick = true; // to avoid double-click from firing
+				if (ModifierKeys == Keys.None)
+					FocusElement = null;
 				return;
+			}
 
 			switch (element.ElementType)
 			{
 				case ElementType.NodeItem:
 				{
+					if (ModifierKeys != Keys.None)
+						return;
+
 					var item = element as NodeItem;
 					if (item.OnClick())
 					{
@@ -1183,7 +1538,20 @@ namespace Graph
 				if (dragging)
 				{
 					abortDrag = true;
-					Cursor.Position = originalMouseLocation;
+					if (command == CommandMode.Edit)
+					{
+						Cursor.Position = originalMouseLocation;
+					} else
+					if (command == CommandMode.MarqueSelection)
+					{
+						foreach (var node in selectedNodes)
+							SetFlag(node, RenderState.Focus, false, false);
+						
+						foreach (var node in unselectedNodes)
+							SetFlag(node, RenderState.Focus, true, false);
+
+						this.Refresh();
+					}
 					return;
 				}
 			}
@@ -1203,6 +1571,13 @@ namespace Graph
 				{
 					case ElementType.Node:			RemoveNode(FocusElement as Node); break;
 					case ElementType.Connection:	Disconnect(FocusElement as NodeConnection); break;
+					case ElementType.NodeSelection:
+					{
+						var selection = FocusElement as NodeSelection;
+						foreach(var node in selection.Nodes)
+							RemoveNode(node); 
+						break;
+					}
 				}
 			}
 		}

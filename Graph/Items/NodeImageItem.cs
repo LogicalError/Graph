@@ -67,24 +67,24 @@ namespace Graph.Items
 				SizeF size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 
 				if (this.Width.HasValue)
-					size.Width = Math.Max(size.Width, this.Width.Value + 2);
+					size.Width = Math.Max(size.Width, this.Width.Value);
 				else
-					size.Width = Math.Max(size.Width, this.Image.Width + 2);
+					size.Width = Math.Max(size.Width, this.Image.Width);
 
 				if (this.Height.HasValue)
-					size.Height = Math.Max(size.Height, this.Height.Value + 2);
+					size.Height = Math.Max(size.Height, this.Height.Value);
 				else
-					size.Height = Math.Max(size.Height, this.Image.Height + 2);
+					size.Height = Math.Max(size.Height, this.Image.Height);
 				
 				return size;
 			} else
 			{
 				var size = new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 				if (this.Width.HasValue)
-					size.Width = Math.Max(size.Width, this.Width.Value + 2);
+					size.Width = Math.Max(size.Width, this.Width.Value);
 
 				if (this.Height.HasValue)
-					size.Height = Math.Max(size.Height, this.Height.Value + 2);
+					size.Height = Math.Max(size.Height, this.Height.Value);
 				
 				return size;
 			}
@@ -99,24 +99,14 @@ namespace Graph.Items
 			if (this.Width.HasValue &&
 				size.Width > this.Width.Value)
 			{
-				location.X += (size.Width - (this.Width.Value + 2)) / 2.0f;
-				size.Width = (this.Width.Value + 2);
+				location.X += (size.Width - (this.Width.Value)) / 2.0f;
+				size.Width = (this.Width.Value);
 			}
 			var rect = new RectangleF(location, size);
 
 			if (this.Image != null)
-			{
-				rect.Width -= 2;
-				rect.Height -= 2;
-				rect.X++;
-				rect.Y++;
 				graphics.DrawImage(this.Image, rect);
-				rect.Width += 2;
-				rect.Height += 2;
-				rect.X--;
-				rect.Y--;
-			}
-
+			
 			if ((state & RenderState.Hover) != 0)
 				graphics.DrawRectangle(Pens.White, rect.Left, rect.Top, rect.Width, rect.Height);
 			else

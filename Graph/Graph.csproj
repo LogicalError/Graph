@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NodeSelection.cs" />
     <Compile Include="Items\NodeDropDownItem.cs" />
     <Compile Include="SelectionForm.cs">
       <SubType>Form</SubType>
