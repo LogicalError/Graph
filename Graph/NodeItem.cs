@@ -1,4 +1,4 @@
-﻿﻿#region License
+﻿#region License
 // Copyright (c) 2009 Sander van Rossen
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -57,11 +57,12 @@ namespace Graph
 		internal RectangleF			bounds;
 		internal RenderState		state			= RenderState.None;
 
-		public virtual bool			OnClick()		{ return false; }
-		public virtual bool			OnStartDrag(PointF location) { return false; }
+		public virtual bool			OnClick()					 { return false; }
+		public virtual bool			OnDoubleClick()				 { return false; }
+		public virtual bool			OnStartDrag(PointF location, out PointF original_location) { original_location = Point.Empty; return false; }
 		public virtual bool			OnDrag(PointF location)		 { return false; }		
 		public virtual bool			OnEndDrag() 				 { return false; }
-		internal abstract SizeF		Measure(IDeviceContext context);
+		internal abstract SizeF		Measure(Graphics context);
 		internal abstract void		Render(Graphics graphics, SizeF minimumSize, PointF position);
 
 		public ElementType ElementType { get { return ElementType.NodeItem; } }

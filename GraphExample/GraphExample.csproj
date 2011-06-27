@@ -79,7 +79,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Z130.jpg" />
     <None Include="Resources\me_square_small.png" />
   </ItemGroup>
   <ItemGroup>

@@ -44,7 +44,7 @@ namespace Graph
 				yield return item;
 		}
 
-		public static SizeF Measure(IDeviceContext context, Node node)
+		public static SizeF Measure(Graphics context, Node node)
 		{
 			if (node == null)
 				return SizeF.Empty;

@@ -1,4 +1,4 @@
-﻿﻿#region License
+﻿#region License
 // Copyright (c) 2009 Sander van Rossen
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,6 +35,7 @@ namespace Graph
 		public NodeItem			Item		{ get; private set; }
 		public bool				Enabled		{ get; internal set; }
 
+		internal PointF			Center		{ get { return new PointF((bounds.Left + bounds.Right) / 2.0f, (bounds.Top + bounds.Bottom) / 2.0f); } }
 		internal RectangleF		bounds;
 		internal RenderState	state;
 

@@ -100,6 +100,8 @@ namespace GraphNodes
 			node.AddItem(new NodeLabelItem("Entry 1", true, false));
 			node.AddItem(new NodeLabelItem("Entry 2", true, false));
 			node.AddItem(new NodeLabelItem("Entry 3", false, true));
+			node.AddItem(new NodeTextBoxItem("TEXTTEXT", false, true));
+			node.AddItem(new NodeDropDownItem(new string[] { "1", "2", "3", "4" }, 0, false, false));
 			this.DoDragDrop(node, DragDropEffects.Copy);
 		}
 

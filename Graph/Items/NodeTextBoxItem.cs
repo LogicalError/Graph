@@ -26,16 +26,35 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
+using System.ComponentModel;
 
 namespace Graph.Items
 {
-	public sealed class NodeLabelItem : NodeItem
+	public sealed class AcceptNodeTextChangedEventArgs : CancelEventArgs
 	{
-		public NodeLabelItem(string text, bool inputEnabled, bool outputEnabled) :
+		public AcceptNodeTextChangedEventArgs(string old_text, string new_text) { PreviousText = old_text; Text = new_text; }
+		public AcceptNodeTextChangedEventArgs(string old_text, string new_text, bool cancel) : base(cancel) { PreviousText = old_text; Text = new_text; }
+		public string			PreviousText	{ get; private set; }
+		public string			Text			{ get; set; }
+	}
+
+	public sealed class NodeTextBoxItem : NodeItem
+	{
+		public event EventHandler<AcceptNodeTextChangedEventArgs> TextChanged;
+
+		public NodeTextBoxItem(string text, bool inputEnabled, bool outputEnabled) :
 			base(inputEnabled, outputEnabled)
 		{
 			this.Text = text;
 		}
+
+		#region Name
+		public string Name
+		{
+			get;
+			set;
+		}
+		#endregion
 
 		#region Text
 		string internalText = string.Empty;
@@ -46,7 +65,15 @@ namespace Graph.Items
 			{
 				if (internalText == value)
 					return;
-				internalText = value;
+				if (TextChanged != null)
+				{
+					var eventArgs = new AcceptNodeTextChangedEventArgs(internalText, value);
+					TextChanged(this, eventArgs);
+					if (eventArgs.Cancel)
+						return;
+					internalText = eventArgs.Text;
+				} else
+					internalText = value;
 				TextSize = Size.Empty;
 			}
 		}
@@ -54,6 +81,17 @@ namespace Graph.Items
 
 		internal SizeF TextSize;
 
+		public override bool OnDoubleClick()
+		{
+			base.OnDoubleClick();
+			var form = new TextEditForm();
+			form.Text = Name ?? "Edit text";
+			form.InputText = Text;
+			var result = form.ShowDialog();
+			if (result == DialogResult.OK)
+				Text = form.InputText;
+			return true;
+		}
 
 		internal override SizeF Measure(Graphics graphics)
 		{
@@ -63,17 +101,10 @@ namespace Graph.Items
 				{
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 
-					if (this.Input.Enabled != this.Output.Enabled)
-					{
-						if (this.Input.Enabled)
-							this.TextSize = graphics.MeasureString(this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftMeasureTextStringFormat);
-						else
-							this.TextSize = graphics.MeasureString(this.Text, SystemFonts.MenuFont, size, GraphConstants.RightMeasureTextStringFormat);
-					} else
-						this.TextSize = graphics.MeasureString(this.Text, SystemFonts.MenuFont, size, GraphConstants.CenterMeasureTextStringFormat);
-
-					this.TextSize.Width  = Math.Max(size.Width, this.TextSize.Width);
-					this.TextSize.Height = Math.Max(size.Height, this.TextSize.Height);
+					this.TextSize = graphics.MeasureString(this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftMeasureTextStringFormat);
+					
+					this.TextSize.Width  = Math.Max(size.Width, this.TextSize.Width + 8);
+					this.TextSize.Height = Math.Max(size.Height, this.TextSize.Height + 2);
 				}
 				return this.TextSize;
 			} else
@@ -88,14 +119,20 @@ namespace Graph.Items
 			size.Width  = Math.Max(minimumSize.Width, size.Width);
 			size.Height = Math.Max(minimumSize.Height, size.Height);
 
-			if (this.Input.Enabled != this.Output.Enabled)
+			var path = GraphRenderer.CreateRoundedRectangle(size, location);
+
+			location.Y += 1;
+			location.X += 1;
+
+			if ((state & RenderState.Hover) == RenderState.Hover)
 			{
-				if (this.Input.Enabled)
-					graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.LeftTextStringFormat);
-				else
-					graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.RightTextStringFormat);
+				graphics.DrawPath(Pens.White, path);
+				graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.LeftTextStringFormat);
 			} else
-				graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.CenterTextStringFormat);
+			{
+				graphics.DrawPath(Pens.Black, path);
+				graphics.DrawString(this.Text, SystemFonts.MenuFont, Brushes.Black, new RectangleF(location, size), GraphConstants.LeftTextStringFormat);
+			}
 		}
 	}
 }

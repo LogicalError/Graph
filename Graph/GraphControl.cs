@@ -1,4 +1,4 @@
-﻿﻿#region License
+﻿#region License
 // Copyright (c) 2009 Sander van Rossen
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -299,9 +299,12 @@ namespace Graph
 		IElement				internalDragOverElement;
 		bool					mouseMoved	= false;
 		bool					dragging	= false;
+		bool					abortDrag	= false;
 
 		Point					lastLocation;
 		PointF					snappedLocation;
+		PointF					originalLocation;
+		Point					originalMouseLocation;
 		
 		PointF					translation = new PointF();
 		float					zoom = 1.0f;
@@ -687,6 +690,11 @@ namespace Graph
 				inverse_transformation.TransformPoints(points);
 				var transformed_location = points[0];
 
+				if (abortDrag)
+				{
+					transformed_location = originalLocation;
+				}
+
 				if (DragElement != null)
 				{
 					switch (DragElement.ElementType)
@@ -726,25 +734,42 @@ namespace Graph
 			base.OnMouseUp(e);
 
 			dragging	= true;
+			abortDrag	= false;
 			mouseMoved	= false;
 			snappedLocation = lastLocation = e.Location;
 			
-			var points = new Point[] { e.Location };
+			var points = new PointF[] { e.Location };
 			inverse_transformation.TransformPoints(points);
 			var transformed_location = points[0];
+
+			originalLocation = transformed_location;
 
 			var element = FindElementAt(transformed_location);
 			if (element != null)
 			{
 				var item = element as NodeItem;
-				if (item != null &&
-					!item.OnStartDrag(transformed_location))
-					element = item.Node;
+				if (item != null)
+				{
+					if (!item.OnStartDrag(transformed_location, out originalLocation))
+					{
+						element = item.Node;
+						originalLocation = transformed_location;
+					}
+				} else
+				{
+					var connection = element as NodeConnection;
+					if (connection != null)
+						originalLocation = connection.To.Center;
+				}
 				FocusElement =
 				DragElement = element;
 				BringElementToFront(element);
 				this.Refresh();
 			}
+
+			points = new PointF[] { originalLocation };
+			transformation.TransformPoints(points);
+			originalMouseLocation = this.PointToScreen(new Point((int)points[0].X, (int)points[0].Y));
 		}
 		#endregion
 
@@ -753,12 +778,28 @@ namespace Graph
 		{
 			base.OnMouseMove(e);
 
-			var deltaX = (lastLocation.X - e.Location.X) / zoom;
-			var deltaY = (lastLocation.Y - e.Location.Y) / zoom;
+			Point currentLocation;
+			PointF transformed_location;
+			if (abortDrag)
+			{
+				transformed_location = originalLocation;
 
-			var points = new Point[] { e.Location };
-			inverse_transformation.TransformPoints(points);
-			var transformed_location = points[0];
+				var points = new PointF[] { originalLocation };
+				transformation.TransformPoints(points);
+				currentLocation = new Point((int)points[0].X, (int)points[0].Y);
+			} else
+			{
+				currentLocation = e.Location;
+
+				var points = new PointF[] { currentLocation };
+				inverse_transformation.TransformPoints(points);
+				transformed_location = points[0];
+			}
+
+			var deltaX = (lastLocation.X - currentLocation.X) / zoom;
+			var deltaY = (lastLocation.Y - currentLocation.Y) / zoom;
+
+			
 
 			bool needRedraw = false;
 
@@ -781,7 +822,7 @@ namespace Graph
 						// translate view
 						translation.X -= deltaX;
 						translation.Y -= deltaY;
-						snappedLocation = lastLocation = e.Location;
+						snappedLocation = lastLocation = currentLocation;
 						this.Refresh();
 						return;
 					} else
@@ -794,7 +835,7 @@ namespace Graph
 								var node = DragElement as Node;
 								node.Location	= new Point((int)Math.Round(node.Location.X - deltaX),
 															(int)Math.Round(node.Location.Y - deltaY));
-								snappedLocation = lastLocation = e.Location;
+								snappedLocation = lastLocation = currentLocation;
 								this.Refresh();
 								return;
 							}
@@ -802,7 +843,7 @@ namespace Graph
 							{
 								var nodeItem = DragElement as NodeItem;
 								needRedraw		= nodeItem.OnDrag(transformed_location);
-								snappedLocation = lastLocation = e.Location;
+								snappedLocation = lastLocation = currentLocation;
 								break;
 							}
 							case ElementType.Connection:		// start dragging end of connection to new input connector
@@ -821,8 +862,8 @@ namespace Graph
 							}
 							case ElementType.InputConnector:	// drag connection from input or output connector
 							case ElementType.OutputConnector:
-							{	
-								snappedLocation = lastLocation = e.Location;
+							{
+								snappedLocation = lastLocation = currentLocation;
 								needRedraw = true;
 								break;
 							}
@@ -983,9 +1024,23 @@ namespace Graph
 			bool needRedraw = false;
 			try
 			{
-				var points	 = new Point[] { e.Location };
-				inverse_transformation.TransformPoints(points);
-				var transformed_location = points[0];
+				Point currentLocation;
+				PointF transformed_location;
+				if (abortDrag)
+				{
+					transformed_location = originalLocation;
+
+					var points = new PointF[] { originalLocation };
+					transformation.TransformPoints(points);
+					currentLocation = new Point((int)points[0].X, (int)points[0].Y);
+				} else
+				{
+					currentLocation = e.Location;
+
+					var points = new PointF[] { currentLocation };
+					inverse_transformation.TransformPoints(points);
+					transformed_location = points[0];
+				}
 
 				if (DragElement != null)
 				{
@@ -1069,6 +1124,11 @@ namespace Graph
 					break;
 				case ElementType.NodeItem:
 					var item = element as NodeItem;
+					if (item.OnDoubleClick())
+					{
+						this.Refresh();
+						return;
+					}
 					element = item.Node;
 					goto case ElementType.Node;
 				case ElementType.Node:
@@ -1114,6 +1174,21 @@ namespace Graph
 		}
 		#endregion
 
+		#region OnKeyDown
+		protected override void OnKeyDown(KeyEventArgs e)
+		{
+			base.OnKeyDown(e);
+			if (e.KeyCode == Keys.Escape)
+			{
+				if (dragging)
+				{
+					abortDrag = true;
+					Cursor.Position = originalMouseLocation;
+					return;
+				}
+			}
+		}
+		#endregion
 
 		#region OnKeyUp
 		protected override void OnKeyUp(KeyEventArgs e)

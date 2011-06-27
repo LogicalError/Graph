@@ -1,4 +1,4 @@
-﻿﻿#region License
+﻿#region License
 // Copyright (c) 2009 Sander van Rossen
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -78,28 +78,49 @@ namespace Graph
 		internal static readonly StringFormat CenterTextStringFormat;
 		internal static readonly StringFormat LeftTextStringFormat;
 		internal static readonly StringFormat RightTextStringFormat;
+		internal static readonly StringFormat TitleMeasureStringFormat;
+		internal static readonly StringFormat CenterMeasureTextStringFormat;
+		internal static readonly StringFormat LeftMeasureTextStringFormat;
+		internal static readonly StringFormat RightMeasureTextStringFormat;
 
 		static GraphConstants()
 		{
-			TitleStringFormat					 = new StringFormat(StringFormatFlags.NoClip | StringFormatFlags.NoWrap);
-			TitleStringFormat.Alignment			 = StringAlignment.Center;
-			TitleStringFormat.LineAlignment		 = StringAlignment.Center;
-			TitleStringFormat.Trimming			 = StringTrimming.EllipsisCharacter;
+			var defaultFlags = StringFormatFlags.NoClip | StringFormatFlags.NoWrap | StringFormatFlags.LineLimit;
+			TitleStringFormat							= new StringFormat(defaultFlags);
+			TitleMeasureStringFormat					= new StringFormat(defaultFlags);
+			TitleMeasureStringFormat.Alignment			=
+			TitleStringFormat.Alignment					= StringAlignment.Center;
+			TitleMeasureStringFormat.LineAlignment		= 
+			TitleStringFormat.LineAlignment				= StringAlignment.Center;
+			TitleStringFormat.Trimming					= StringTrimming.EllipsisCharacter;
+			TitleMeasureStringFormat.Trimming			= StringTrimming.None;
 
-			CenterTextStringFormat				 = new StringFormat(StringFormatFlags.NoClip | StringFormatFlags.NoWrap);
-			CenterTextStringFormat.Alignment	 = StringAlignment.Center;
-			CenterTextStringFormat.LineAlignment = StringAlignment.Center;
-			CenterTextStringFormat.Trimming		 = StringTrimming.EllipsisCharacter;
+			CenterTextStringFormat						= new StringFormat(defaultFlags);
+			CenterMeasureTextStringFormat				= new StringFormat(defaultFlags);
+			CenterMeasureTextStringFormat.Alignment		= 
+			CenterTextStringFormat.Alignment			= StringAlignment.Center;
+			CenterMeasureTextStringFormat.LineAlignment = 
+			CenterTextStringFormat.LineAlignment		= StringAlignment.Center;
+			CenterTextStringFormat.Trimming				= StringTrimming.EllipsisCharacter;
+			CenterMeasureTextStringFormat.Trimming		= StringTrimming.None;
 
-			LeftTextStringFormat				 = new StringFormat(StringFormatFlags.NoClip | StringFormatFlags.NoWrap);
-			LeftTextStringFormat.Alignment		 = StringAlignment.Near;
-			LeftTextStringFormat.LineAlignment	 = StringAlignment.Center;
-			LeftTextStringFormat.Trimming		 = StringTrimming.EllipsisCharacter;
+			LeftTextStringFormat						= new StringFormat(defaultFlags);
+			LeftMeasureTextStringFormat					= new StringFormat(defaultFlags);
+			LeftMeasureTextStringFormat.Alignment		= 
+			LeftTextStringFormat.Alignment				= StringAlignment.Near;
+			LeftMeasureTextStringFormat.LineAlignment	= 
+			LeftTextStringFormat.LineAlignment			= StringAlignment.Center;
+			LeftTextStringFormat.Trimming				= StringTrimming.EllipsisCharacter;
+			LeftMeasureTextStringFormat.Trimming		= StringTrimming.None;
 
-			RightTextStringFormat				 = new StringFormat(StringFormatFlags.NoClip | StringFormatFlags.NoWrap);
-			RightTextStringFormat.Alignment		 = StringAlignment.Far;
-			RightTextStringFormat.LineAlignment	 = StringAlignment.Center;
-			RightTextStringFormat.Trimming		 = StringTrimming.EllipsisCharacter;
+			RightTextStringFormat						= new StringFormat(defaultFlags);
+			RightMeasureTextStringFormat				= new StringFormat(defaultFlags);
+			RightMeasureTextStringFormat.Alignment		= 
+			RightTextStringFormat.Alignment				= StringAlignment.Far;
+			RightMeasureTextStringFormat.LineAlignment	= 
+			RightTextStringFormat.LineAlignment			= StringAlignment.Center;
+			RightTextStringFormat.Trimming				= StringTrimming.EllipsisCharacter;
+			RightMeasureTextStringFormat.Trimming		= StringTrimming.None;
 		}
 	}
 }

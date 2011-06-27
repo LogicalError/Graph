@@ -1,4 +1,26 @@
-﻿using System;
+﻿#region License
+// Copyright (c) 2009 Sander van Rossen
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+#endregion
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -75,10 +97,12 @@ namespace Graph.Items
 			return true;
 		}
 
-		public override bool OnStartDrag(PointF location) 
+		public override bool OnStartDrag(PointF location, out PointF original_location) 
 		{
-			base.OnStartDrag(location);
+			base.OnStartDrag(location, out original_location);
 			var size = (MaxValue - MinValue);
+			original_location.Y = location.Y;
+			original_location.X = ((Value / size) * sliderRect.Width) + sliderRect.Left;
 			Value = ((location.X - sliderRect.Left) / sliderRect.Width) * size;
 			Dragging = true; 
 			return true; 
@@ -104,7 +128,7 @@ namespace Graph.Items
 		const int SliderHeight	= 8;
 		const int Spacing		= 2;
 
-		internal override SizeF Measure(IDeviceContext context)
+		internal override SizeF Measure(Graphics graphics)
 		{
 			if (!string.IsNullOrWhiteSpace(this.Text))
 			{
@@ -113,7 +137,7 @@ namespace Graph.Items
 					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
 					var sliderWidth = this.MinimumSliderSize + SliderBoxSize;
 
-					this.textSize = (SizeF)TextRenderer.MeasureText(context, this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftTextFlags);
+					this.textSize			= (SizeF)graphics.MeasureString(this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftMeasureTextStringFormat);
 					this.textSize.Width		= Math.Max(this.TextSize, this.textSize.Width + 4);
 					this.itemSize.Width		= Math.Max(size.Width, this.textSize.Width + sliderWidth + Spacing);
 					this.itemSize.Height	= Math.Max(size.Height, this.textSize.Height);
