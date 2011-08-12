@@ -48,6 +48,12 @@ namespace Graph.Items
 			this.Text = text;
 		}
 
+		public NodeTextBoxItem(string text) :
+			this(text, false, false)
+		{
+			this.Text = text;
+		}
+
 		#region Name
 		public string Name
 		{

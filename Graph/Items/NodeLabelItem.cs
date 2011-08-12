@@ -37,6 +37,9 @@ namespace Graph.Items
 			this.Text = text;
 		}
 
+		public NodeLabelItem(string text) :
+			this(text, false, false) { }
+
 		#region Text
 		string internalText = string.Empty;
 		public string Text

@@ -373,7 +373,7 @@ namespace Graph
 		PointF					translation = new PointF();
 		float					zoom = 1.0f;
 
-
+		
 		#region UpdateMatrices
 		readonly Matrix			transformation = new Matrix();
 		readonly Matrix			inverse_transformation = new Matrix();
@@ -831,7 +831,8 @@ namespace Graph
 		#region OnMouseDown
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
-			base.OnMouseUp(e);
+			previousArgs = e;
+			base.OnMouseDown(e);
 
 			if (currentButtons != MouseButtons.None)
 				return;
@@ -953,7 +954,7 @@ namespace Graph
 							originalLocation = connection.To.Center;
 					}
 					FocusElement =
-					DragElement = element;
+						DragElement = element;
 					BringElementToFront(element);
 					this.Refresh();
 					command = CommandMode.Edit;
@@ -1327,13 +1328,16 @@ namespace Graph
 		}
 		#endregion
 
+
+
 		#region OnMouseUp
 		protected override void OnMouseUp(MouseEventArgs e)
 		{
-			base.OnMouseUp(e);
-
 			currentButtons &= ~e.Button;
+			
 			bool needRedraw = false;
+			if (!dragging)
+				return;
 			try
 			{
 				Point currentLocation;
@@ -1368,11 +1372,21 @@ namespace Graph
 							foreach (var node in unselectedNodes)
 								SetFlag(node, RenderState.Focus, true, false);
 						}
-														
+
 						if (!abortDrag)
-							FocusElement = new NodeSelection(
-								// select all focussed nodes
-								from node in graphNodes where (node.state & RenderState.Focus) == RenderState.Focus select node);
+						{
+							NodeSelection selection = null;
+							if (graphNodes.Count > 0)
+							{
+								// select all focused nodes
+								var result = (from node in graphNodes
+											  where (node.state & RenderState.Focus) == RenderState.Focus
+											  select node).ToList();
+								if (result.Count > 0)
+									selection = new NodeSelection(result);
+							}
+							FocusElement = selection;
+						}
 						return;
 					case CommandMode.ScaleView:
 						return;
@@ -1443,6 +1457,8 @@ namespace Graph
 				
 				if (needRedraw)
 					this.Refresh();
+			
+				base.OnMouseUp(e);
 			}
 		}
 		#endregion
@@ -1489,42 +1505,48 @@ namespace Graph
 		#endregion
 
 		#region OnClick
-		protected override void  OnClick(EventArgs e)
+		protected override void OnClick(EventArgs e)
 		{
-			ignoreDoubleClick = false;
- 			base.OnClick(e);
-			if (mouseMoved)
-				return;
-
-			var points = new Point[] { lastLocation };
-			inverse_transformation.TransformPoints(points);
-			var transformed_location = points[0];
-
-			var element = FindElementAt(transformed_location);
-			if (element == null)
+			try
 			{
-				ignoreDoubleClick = true; // to avoid double-click from firing
-				if (ModifierKeys == Keys.None)
-					FocusElement = null;
-				return;
-			}
+				ignoreDoubleClick = false;
+				if (mouseMoved)
+					return;
 
-			switch (element.ElementType)
-			{
-				case ElementType.NodeItem:
+				var points = new Point[] { lastLocation };
+				inverse_transformation.TransformPoints(points);
+				var transformed_location = points[0];
+
+				var element = FindElementAt(transformed_location);
+				if (element == null)
 				{
-					if (ModifierKeys != Keys.None)
-						return;
-
-					var item = element as NodeItem;
-					if (item.OnClick())
-					{
-						ignoreDoubleClick = true; // to avoid double-click from firing
-						this.Refresh();
-						return;
-					}
-					break;
+					ignoreDoubleClick = true; // to avoid double-click from firing
+					if (ModifierKeys == Keys.None)
+						FocusElement = null;
+					return;
 				}
+
+				switch (element.ElementType)
+				{
+					case ElementType.NodeItem:
+					{
+						if (ModifierKeys != Keys.None)
+							return;
+
+						var item = element as NodeItem;
+						if (item.OnClick())
+						{
+							ignoreDoubleClick = true; // to avoid double-click from firing
+							this.Refresh();
+							return;
+						}
+						break;
+					}
+				}
+			}
+			finally
+			{
+				base.OnClick(e);
 			}
 		}
 		#endregion
@@ -1590,15 +1612,21 @@ namespace Graph
 		{
 			base.OnDragEnter(drgevent);
 			dragNode = null;
-			var node = (Node)drgevent.Data.GetData(typeof(Node));
-			if (node == null)
-				return;
 
-			if (!AddNode(node))
-				return;
-			dragNode = node;
+			foreach (var name in drgevent.Data.GetFormats())
+			{
+				var node = drgevent.Data.GetData(name) as Node;
+				if (node != null)
+				{
+					if (AddNode(node))
+					{
+						dragNode = node;
 
-			drgevent.Effect = DragDropEffects.Copy;
+						drgevent.Effect = DragDropEffects.Copy;
+					}
+					return;
+				}
+			}
 		}
 		#endregion
 
