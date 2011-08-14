@@ -831,7 +831,6 @@ namespace Graph
 		#region OnMouseDown
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
-			previousArgs = e;
 			base.OnMouseDown(e);
 
 			if (currentButtons != MouseButtons.None)
