@@ -36,6 +36,12 @@ namespace Graph
 		public Node Node { get; private set; }
 	}
 
+	public sealed class ElementEventArgs : EventArgs
+	{
+		public ElementEventArgs(IElement element) { Element = element; }
+		public IElement Element { get; private set; }
+	}
+
 	public sealed class AcceptNodeEventArgs : CancelEventArgs
 	{
 		public AcceptNodeEventArgs(Node node) { Node = node; }

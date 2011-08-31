@@ -43,6 +43,7 @@ namespace Graph
 		}
 		#endregion
 
+		public event EventHandler<ElementEventArgs>					FocusChanged;
 		public event EventHandler<AcceptNodeEventArgs>				NodeAdded;
 		public event EventHandler<AcceptNodeEventArgs>				NodeRemoved;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdded;
@@ -99,6 +100,11 @@ namespace Graph
 				internalFocusElement = value;
 				if (internalFocusElement != null)
 					SetFlag(internalFocusElement, RenderState.Focus, true, false);
+
+				if (FocusChanged != null)
+					FocusChanged(this, new ElementEventArgs(value));
+
+				this.Invalidate();
 			}
 		}
 		#endregion
@@ -459,6 +465,7 @@ namespace Graph
 			{
 				BringElementToFront(lastNode);
 				FocusElement = lastNode;
+				this.Invalidate();
 			}
 			return modified;
 		}
@@ -512,6 +519,8 @@ namespace Graph
 				graphNodes.Remove(node);
 				modified = true;
 			}
+			if (modified)
+				this.Invalidate();
 			return modified;
 		}
 		#endregion
@@ -593,6 +602,8 @@ namespace Graph
 			// Just in case somebody stored it somewhere ..
 			connection.From = null;
 			connection.To = null;
+
+			this.Invalidate();
 			return true;
 		}
 		#endregion
@@ -1361,8 +1372,6 @@ namespace Graph
 				switch (command)
 				{
 					case CommandMode.MarqueSelection:
-						needRedraw = true;
-
 						if (abortDrag)
 						{
 							foreach (var node in selectedNodes)
@@ -1370,9 +1379,8 @@ namespace Graph
 
 							foreach (var node in unselectedNodes)
 								SetFlag(node, RenderState.Focus, true, false);
-						}
-
-						if (!abortDrag)
+							
+						} else
 						{
 							NodeSelection selection = null;
 							if (graphNodes.Count > 0)
@@ -1386,6 +1394,7 @@ namespace Graph
 							}
 							FocusElement = selection;
 						}
+						this.Invalidate();
 						return;
 					case CommandMode.ScaleView:
 						return;
