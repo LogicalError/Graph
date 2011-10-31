@@ -32,7 +32,10 @@ namespace Graph
 {
 	public sealed class NodeConnectionEventArgs : EventArgs
 	{
-		public NodeConnectionEventArgs(NodeConnection connection) { Connection = connection; }
+		public NodeConnectionEventArgs(NodeConnection connection) { Connection = connection; From = connection.From; To = connection.To; }
+		public NodeConnectionEventArgs(NodeConnector from, NodeConnector to, NodeConnection connection) { Connection = connection; From = from; To = to; }
+		public NodeConnector From { get; set; }
+		public NodeConnector To { get; set; }
 		public NodeConnection Connection { get; private set; }
 	}
 

@@ -61,7 +61,7 @@ namespace GraphNodes
 			graphControl.AddNode(textureNode);
 
 			graphControl.ConnectionAdded += new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionAdded);
-			graphControl.ConnectionRemoved += new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionRemoved);
+			graphControl.ConnectionRemoving += new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionRemoved);
 
 			graphControl.Connect(colorItem, check1Item);
 		}

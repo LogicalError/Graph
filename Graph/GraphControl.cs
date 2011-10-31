@@ -45,9 +45,11 @@ namespace Graph
 
 		public event EventHandler<ElementEventArgs>					FocusChanged;
 		public event EventHandler<AcceptNodeEventArgs>				NodeAdded;
-		public event EventHandler<AcceptNodeEventArgs>				NodeRemoved;
+		public event EventHandler<AcceptNodeEventArgs>				NodeRemoving;
+		public event EventHandler<NodeEventArgs>					NodeRemoved;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdded;
-		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionRemoved;
+		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionRemoving;
+		public event EventHandler<NodeConnectionEventArgs>			ConnectionRemoved;
 
 
 		#region DragElement
@@ -477,10 +479,10 @@ namespace Graph
 			if (node == null)
 				return;
 
-			if (NodeRemoved != null)
+			if (NodeRemoving != null)
 			{
 				var eventArgs = new AcceptNodeEventArgs(node);
-				NodeRemoved(this, eventArgs);
+				NodeRemoving(this, eventArgs);
 				if (eventArgs.Cancel)
 					return;
 			}
@@ -490,6 +492,9 @@ namespace Graph
 			DisconnectAll(node);
 			graphNodes.Remove(node);
 			this.Invalidate();
+
+			if (NodeRemoved != null)
+				NodeRemoved(this, new NodeEventArgs(node));
 		}
 		#endregion
 
@@ -504,10 +509,10 @@ namespace Graph
 			{
 				if (node == null)
 					continue;
-				if (NodeRemoved != null)
+				if (NodeRemoving != null)
 				{
 					var eventArgs = new AcceptNodeEventArgs(node);
-					NodeRemoved(this, eventArgs);
+					NodeRemoving(this, eventArgs);
 					if (eventArgs.Cancel)
 						continue;
 				}
@@ -518,6 +523,9 @@ namespace Graph
 				DisconnectAll(node);
 				graphNodes.Remove(node);
 				modified = true;
+
+				if (NodeRemoved != null)
+					NodeRemoved(this, new NodeEventArgs(node));
 			}
 			if (modified)
 				this.Invalidate();
@@ -581,10 +589,10 @@ namespace Graph
 			if (connection == null)
 				return false;
 
-			if (ConnectionRemoved != null)
+			if (ConnectionRemoving != null)
 			{
 				var eventArgs = new AcceptNodeConnectionEventArgs(connection);
-				ConnectionRemoved(this, eventArgs);
+				ConnectionRemoving(this, eventArgs);
 				if (eventArgs.Cancel)
 					return false;
 			}
@@ -602,6 +610,9 @@ namespace Graph
 			// Just in case somebody stored it somewhere ..
 			connection.From = null;
 			connection.To = null;
+
+			if (ConnectionRemoved != null)
+				ConnectionRemoved(this, new NodeConnectionEventArgs(from, to, connection));
 
 			this.Invalidate();
 			return true;
