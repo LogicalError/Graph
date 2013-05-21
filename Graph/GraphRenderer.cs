@@ -480,6 +480,10 @@ namespace Graph
 			{
 				return Color.Black;
 			} else
+			if ((state & RenderState.Forbidden) != 0)
+			{
+				return Color.Red;
+			} else
 				return Color.LightGray;
 		}
 		

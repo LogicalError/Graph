@@ -35,6 +35,7 @@ namespace Graph
 		Hover		= 2,
 		DraggedOver	= 4,
 		Dragging	= 8,
-		Focus		= 16
+		Focus		= 16,
+		Forbidden	= 32
 	}
 }

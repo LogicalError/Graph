@@ -47,6 +47,7 @@ namespace Graph
 		public event EventHandler<AcceptNodeEventArgs>				NodeAdded;
 		public event EventHandler<AcceptNodeEventArgs>				NodeRemoving;
 		public event EventHandler<NodeEventArgs>					NodeRemoved;
+		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdding;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdded;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionRemoving;
 		public event EventHandler<NodeConnectionEventArgs>			ConnectionRemoved;
@@ -818,17 +819,26 @@ namespace Graph
 
 					if (DragElement != null)
 					{
+						RenderState renderState = RenderState.Dragging | RenderState.Hover;
 						switch (DragElement.ElementType)
 						{
 							case ElementType.OutputConnector:
 								var outputConnector = DragElement as NodeConnector;
+								if ((outputConnector.state & RenderState.Forbidden) != 0)
+								{
+									renderState = RenderState.Forbidden;
+								}
 								GraphRenderer.RenderOutputConnection(e.Graphics, outputConnector, 
-									transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+									transformed_location.X, transformed_location.Y, renderState);
 								break;
 							case ElementType.InputConnector:
 								var inputConnector = DragElement as NodeConnector;
+								if ((inputConnector.state & RenderState.Forbidden) != 0)
+								{
+									renderState = RenderState.Forbidden;
+								}
 								GraphRenderer.RenderInputConnection(e.Graphics, inputConnector, 
-									transformed_location.X, transformed_location.Y, RenderState.Dragging | RenderState.Hover);
+									transformed_location.X, transformed_location.Y, renderState);
 								break;
 						}
 					}
@@ -1196,6 +1206,8 @@ namespace Graph
 							case ElementType.InputConnector:	// drag connection from input or output connector
 							case ElementType.OutputConnector:
 							{
+								// Reset forbidden flag (in case it was set in earlier iteration).
+								SetFlag(DragElement, RenderState.Forbidden, false);
 								snappedLocation = lastLocation = currentLocation;
 								needRedraw = true;
 								break;
@@ -1237,8 +1249,12 @@ namespace Graph
 								var dragConnector = DragElement as NodeConnector;
 								if (node.outputConnectors.Count == 1)
 								{
-									element = node.outputConnectors[0];
-									goto case ElementType.OutputConnector;
+									// Check if this connection would be allowed.
+									if (ConnectionIsAllowed(DragElement as NodeConnector,node.outputConnectors[0]))
+									{
+										element = node.outputConnectors[0];
+										goto case ElementType.OutputConnector;
+									}
 								}
 
 								if (node != dragConnector.Node)
@@ -1249,8 +1265,12 @@ namespace Graph
 								var dragConnector = DragElement as NodeConnector;
 								if (node.inputConnectors.Count == 1)
 								{
-									element = node.inputConnectors[0];
-									goto case ElementType.InputConnector;
+									// Check if this connection would be allowed.
+									if (ConnectionIsAllowed(DragElement as NodeConnector,node.inputConnectors[0]))
+									{
+										element = node.inputConnectors[0];
+										goto case ElementType.InputConnector;
+									}
 								}
 
 								if (node != dragConnector.Node)
@@ -1276,6 +1296,18 @@ namespace Graph
 							{
 								element = null;
 								break;
+							} else 
+							{
+								// Check if this connection would be allowed.
+								if (!ConnectionIsAllowed(DragElement as NodeConnector,element as NodeConnector))
+								{
+									// If the event was canceled, set the forbidden flag on the connector.
+									// The flag will be automatically cleared during the next frame.
+									dragConnector.state = SetFlag(dragConnector.state,RenderState.Forbidden, true);
+									// Don't store the element, thus disabling the possibility for connecting.
+									element = null;
+									break;
+								}
 							}
 						}
 
@@ -1330,6 +1362,35 @@ namespace Graph
 			if (needRedraw)
 				this.Refresh();
 		}
+
+		/// <summary>
+		/// Checks whether the connection between two connectors is allowed.
+		/// This is achieved through event propagation.
+		/// </summary>
+		/// <returns></returns>
+		private bool ConnectionIsAllowed(NodeConnector from, NodeConnector to)
+		{
+			// If someone has subscribed to the ConnectionAdding event,
+			// give them a chance to interrupt this connection attempt.
+			if (null != ConnectionAdding) 
+			{
+				// Populate a temporary NodeConnection instance.
+				var connection = new NodeConnection();
+				connection.From = from;
+				connection.To = to;
+
+				// Fire the event and see if someone cancels it.
+				var eventArgs = new AcceptNodeConnectionEventArgs(connection);
+				ConnectionAdding(this, eventArgs);
+				if (eventArgs.Cancel)
+				{
+					
+					return false;
+				}
+			}
+			return true;
+		}
+
 		#endregion
 
 		#region GetElementNode
