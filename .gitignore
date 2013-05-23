@@ -25,3 +25,5 @@
 /GraphExample/obj/x86/Debug/ResolveAssemblyReference.cache
 /GraphExample/obj/x86/Debug/TempPE/Properties.Resources.Designer.cs.dll
 *.suo
+Graph/obj/Debug/Graph.SelectionForm.resources
+Graph/obj/Debug/Graph.TextEditForm.resources

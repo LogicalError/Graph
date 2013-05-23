@@ -31,6 +31,7 @@ namespace GraphNodes
 			var redChannel		= new NodeSliderItem("R", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var greenChannel	= new NodeSliderItem("G", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var blueChannel		= new NodeSliderItem("B", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
+			var alphaChannel	= new NodeNumericSliderItem("A", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var colorItem		= new NodeColorItem("Color", Color.Black, false, true);
 
 			EventHandler<NodeItemEventArgs> channelChangedDelegate = delegate(object sender, NodeItemEventArgs args)
@@ -38,16 +39,19 @@ namespace GraphNodes
 				var red = redChannel.Value;
 				var green = blueChannel.Value;
 				var blue = greenChannel.Value;
-				colorItem.Color = Color.FromArgb((int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
+				var alpha = alphaChannel.Value;
+				colorItem.Color = Color.FromArgb((int)Math.Round(alpha * 255), (int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
 			};
 			redChannel.ValueChanged += channelChangedDelegate;
 			greenChannel.ValueChanged += channelChangedDelegate;
 			blueChannel.ValueChanged += channelChangedDelegate;
+			alphaChannel.ValueChanged += channelChangedDelegate;
 
 
 			colorNode.AddItem(redChannel);
 			colorNode.AddItem(greenChannel);
 			colorNode.AddItem(blueChannel);
+			colorNode.AddItem(alphaChannel);
 
 			colorItem.Clicked += new EventHandler<NodeItemEventArgs>(OnColClicked);
 			colorNode.AddItem(colorItem);
@@ -122,6 +126,7 @@ namespace GraphNodes
 			var redChannel = new NodeSliderItem("R", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var greenChannel = new NodeSliderItem("G", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var blueChannel = new NodeSliderItem("B", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
+			var alphaChannel = new NodeNumericSliderItem("A", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var colorItem = new NodeColorItem("Color", Color.Black, false, true);
 
 			EventHandler<NodeItemEventArgs> channelChangedDelegate = delegate(object s, NodeItemEventArgs args)
@@ -129,16 +134,19 @@ namespace GraphNodes
 				var red = redChannel.Value;
 				var green = blueChannel.Value;
 				var blue = greenChannel.Value;
-				colorItem.Color = Color.FromArgb((int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
+				var alpha = alphaChannel.Value;
+				colorItem.Color = Color.FromArgb((int)Math.Round(alpha * 255), (int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
 			};
 			redChannel.ValueChanged += channelChangedDelegate;
 			greenChannel.ValueChanged += channelChangedDelegate;
 			blueChannel.ValueChanged += channelChangedDelegate;
+			alphaChannel.ValueChanged += channelChangedDelegate;
 
 
 			colorNode.AddItem(redChannel);
 			colorNode.AddItem(greenChannel);
 			colorNode.AddItem(blueChannel);
+			colorNode.AddItem(alphaChannel);
 
 			colorItem.Clicked += new EventHandler<NodeItemEventArgs>(OnColClicked);
 			colorNode.AddItem(colorItem);
