@@ -30,6 +30,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using Graph.Compatibility;
 
 namespace Graph
 {
@@ -40,6 +41,7 @@ namespace Graph
 		{
 			InitializeComponent();
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.Selectable | ControlStyles.UserPaint, true);
+			CompatibilityStrategy = new AlwaysCompatible();
 		}
 		#endregion
 
@@ -347,6 +349,21 @@ namespace Graph
 				this.Invalidate();
 			}
 		}
+		#endregion
+
+		#region HighlightCompatible
+		/// <summary>
+		/// Should compatible connectors be highlighted when dragging a connection?
+		/// </summary>
+		[DisplayName( "Highlight Compatible Node Items" )]
+		[Description( "Should compatible connectors be highlighted when dragging a connection?" )]
+		[Category( "Behavior" )]
+		public bool HighlightCompatible { get; set; }
+
+		/// <summary>
+		/// The strategy that will be applied to determine if two node item connectors are compatible with each other
+		/// </summary>
+		public ICompatibilityStrategy CompatibilityStrategy { get; set; }
 		#endregion
 
 
@@ -1206,6 +1223,22 @@ namespace Graph
 							case ElementType.InputConnector:	// drag connection from input or output connector
 							case ElementType.OutputConnector:
 							{
+								// Should compatible connectors be highlighted?
+								if (HighlightCompatible && null != CompatibilityStrategy) 
+								{
+									// Iterate over all nodes
+									foreach (Node graphNode in graphNodes)
+									{
+										// Check compatibility of node connectors
+										foreach (NodeConnector connector in graphNode.inputConnectors.Concat(graphNode.outputConnectors)) 
+										{
+											if (CompatibilityStrategy.CanConnect(DragElement as NodeConnector, connector))
+											{
+												connector.Highlight = true;
+											}
+										}
+									}
+								}
 								// Reset forbidden flag (in case it was set in earlier iteration).
 								SetFlag(DragElement, RenderState.Forbidden, false);
 								snappedLocation = lastLocation = currentLocation;
@@ -1420,6 +1453,23 @@ namespace Graph
 			bool needRedraw = false;
 			if (!dragging)
 				return;
+
+			if (HighlightCompatible) 
+			{
+				// Remove all highlight flags
+				foreach( Node graphNode in graphNodes ) 
+				{
+					foreach( NodeConnector inputConnector in graphNode.inputConnectors ) 
+					{
+						inputConnector.Highlight = false;
+					}
+					foreach( NodeConnector inputConnector in graphNode.outputConnectors ) 
+					{
+						inputConnector.Highlight = false;
+					}
+				}
+			}
+
 			try
 			{
 				Point currentLocation;
