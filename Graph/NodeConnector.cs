@@ -34,6 +34,7 @@ namespace Graph
 		public Node				Node		{ get { return Item.Node; } }
 		public NodeItem			Item		{ get; private set; }
 		public bool				Enabled		{ get; internal set; }
+		public bool				Highlight	{ get; internal set; }
 
 		internal PointF			Center		{ get { return new PointF((bounds.Left + bounds.Right) / 2.0f, (bounds.Top + bounds.Bottom) / 2.0f); } }
 		internal RectangleF		bounds;

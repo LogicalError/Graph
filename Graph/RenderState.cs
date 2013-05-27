@@ -36,6 +36,7 @@ namespace Graph
 		DraggedOver	= 4,
 		Dragging	= 8,
 		Focus		= 16,
-		Forbidden	= 32
+		Forbidden	= 32,
+		Highlight	= 64
 	}
 }

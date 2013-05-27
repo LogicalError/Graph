@@ -87,6 +87,18 @@ namespace Graph
 			if (state == RenderState.None)
 			{
 				graphics.DrawEllipse(Pens.Black, bounds);
+			} else if ((state & RenderState.Highlight) != 0) 
+			{
+				// First draw the normal black border
+				graphics.DrawEllipse(Pens.Black, bounds);
+
+				// Draw an additional highlight around the connector
+				RectangleF highlightBounds = new RectangleF(bounds.X,bounds.Y,bounds.Width,bounds.Height);
+				highlightBounds.Width += 10;
+				highlightBounds.Height += 10;
+				highlightBounds.X -= 5;
+				highlightBounds.Y -= 5;
+				graphics.DrawEllipse(Pens.OrangeRed, highlightBounds);
 			} else
 			{
 				graphics.DrawArc(Pens.Black, bounds, 90, 180);
@@ -95,6 +107,8 @@ namespace Graph
 					graphics.DrawArc(pen, bounds, 270, 180);
 				}
 			}
+
+			
 		}
 
 		static void RenderArrow(Graphics graphics, RectangleF bounds, RenderState connectionState)
@@ -315,10 +329,17 @@ namespace Graph
 									connected = true;
 								}
 							}
+
+							// Apply highlight flag as needed
+							RenderState renderState = inputConnector.state;
+							if( inputConnector.Highlight ) 
+							{
+								renderState |= RenderState.Highlight;
+							}
 							
 							RenderConnector(graphics, 
 											inputConnector.bounds, 
-											inputConnector.state);
+											renderState);
 
 							if (connected)
 								RenderArrow(graphics, inputConnector.bounds, state);
@@ -334,6 +355,11 @@ namespace Graph
 							{
 								if (connection.From == outputConnector)
 									state |= connection.state | RenderState.Connected;
+							}
+							// Apply highlight flag as needed
+							if( outputConnector.Highlight ) 
+							{
+								state |= RenderState.Highlight;
 							}
 							RenderConnector(graphics, outputConnector.bounds, state);
 						}

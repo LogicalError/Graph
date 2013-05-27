@@ -28,27 +28,13 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.graphControl = new Graph.GraphControl();
 			this.label1 = new System.Windows.Forms.Label();
 			this.showLabelsCheckBox = new System.Windows.Forms.CheckBox();
 			this.label2 = new System.Windows.Forms.Label();
 			this.label3 = new System.Windows.Forms.Label();
 			this.label4 = new System.Windows.Forms.Label();
+			this.graphControl = new Graph.GraphControl();
 			this.SuspendLayout();
-			// 
-			// graphControl
-			// 
-			this.graphControl.AllowDrop = true;
-			this.graphControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.graphControl.BackColor = System.Drawing.SystemColors.Window;
-			this.graphControl.Location = new System.Drawing.Point(108, 12);
-			this.graphControl.Name = "graphControl";
-			this.graphControl.ShowLabels = false;
-			this.graphControl.Size = new System.Drawing.Size(678, 378);
-			this.graphControl.TabIndex = 0;
-			this.graphControl.Text = "graphControl";
 			// 
 			// label1
 			// 
@@ -102,7 +88,23 @@
 			this.label4.Text = "color node";
 			this.label4.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ColorNode_MouseDown);
 			// 
-			// Form1
+			// graphControl
+			// 
+			this.graphControl.AllowDrop = true;
+			this.graphControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+			this.graphControl.BackColor = System.Drawing.SystemColors.Window;
+			this.graphControl.FocusElement = null;
+			this.graphControl.HighlightCompatible = true;
+			this.graphControl.Location = new System.Drawing.Point(108, 12);
+			this.graphControl.Name = "graphControl";
+			this.graphControl.ShowLabels = false;
+			this.graphControl.Size = new System.Drawing.Size(678, 378);
+			this.graphControl.TabIndex = 0;
+			this.graphControl.Text = "graphControl";
+			// 
+			// ExampleForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -114,7 +116,7 @@
 			this.Controls.Add(this.label1);
 			this.Controls.Add(this.graphControl);
 			this.DoubleBuffered = true;
-			this.Name = "Form1";
+			this.Name = "ExampleForm";
 			this.Text = "Form1";
 			this.ResumeLayout(false);
 			this.PerformLayout();
