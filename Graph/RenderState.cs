@@ -30,12 +30,13 @@ namespace Graph
 	[Flags]
 	public enum RenderState
 	{
-		None		= 0,
-		Connected	= 1,
-		Hover		= 2,
-		DraggedOver	= 4,
-		Dragging	= 8,
-		Focus		= 16,
-		Forbidden	= 32
+		None			= 0,
+		Focus			= 1,	// This element has focus
+		Connected		= 2,	// This element is connected to another element
+		Hover			= 4,	// We're hovering over this element
+		DraggedOver		= 8,	// We're dragging over this element
+		Dragging		= 16,	// We're dragging (or dragging from) this element
+		Incompatible	= 32,	// Connector is shown as not being able to be connected to
+		Compatible		= 64	// Connector is shown as being able to be connected to
 	}
 }

@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using Graph;
 using System.Drawing.Drawing2D;
+using Graph.Compatibility;
 using Graph.Items;
 
 namespace GraphNodes
@@ -18,11 +19,13 @@ namespace GraphNodes
 		{
 			InitializeComponent();
 
+			graphControl.CompatibilityStrategy = new TagTypeCompatibility();
+
 			var someNode = new Node("My Title");
 			someNode.Location = new Point(500, 100);
-			var check1Item = new NodeCheckboxItem("Check 1", true, false);
+			var check1Item = new NodeCheckboxItem("Check 1", true, false) { Tag = 31337 };
 			someNode.AddItem(check1Item);
-			someNode.AddItem(new NodeCheckboxItem("Check 2", true, false));
+			someNode.AddItem(new NodeCheckboxItem("Check 2", true, false) { Tag = 42f });
 			
 			graphControl.AddNode(someNode);
 
@@ -31,27 +34,23 @@ namespace GraphNodes
 			var redChannel		= new NodeSliderItem("R", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var greenChannel	= new NodeSliderItem("G", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var blueChannel		= new NodeSliderItem("B", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
-			var alphaChannel	= new NodeNumericSliderItem("A", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
-			var colorItem		= new NodeColorItem("Color", Color.Black, false, true);
+			var colorItem		= new NodeColorItem("Color", Color.Black, false, true) { Tag = 1337 };
 
 			EventHandler<NodeItemEventArgs> channelChangedDelegate = delegate(object sender, NodeItemEventArgs args)
 			{
 				var red = redChannel.Value;
 				var green = blueChannel.Value;
 				var blue = greenChannel.Value;
-				var alpha = alphaChannel.Value;
-				colorItem.Color = Color.FromArgb((int)Math.Round(alpha * 255), (int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
+				colorItem.Color = Color.FromArgb((int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
 			};
-			redChannel.ValueChanged += channelChangedDelegate;
-			greenChannel.ValueChanged += channelChangedDelegate;
-			blueChannel.ValueChanged += channelChangedDelegate;
-			alphaChannel.ValueChanged += channelChangedDelegate;
+			redChannel.ValueChanged		+= channelChangedDelegate;
+			greenChannel.ValueChanged	+= channelChangedDelegate;
+			blueChannel.ValueChanged	+= channelChangedDelegate;
 
 
 			colorNode.AddItem(redChannel);
 			colorNode.AddItem(greenChannel);
 			colorNode.AddItem(blueChannel);
-			colorNode.AddItem(alphaChannel);
 
 			colorItem.Clicked += new EventHandler<NodeItemEventArgs>(OnColClicked);
 			colorNode.AddItem(colorItem);
@@ -59,12 +58,13 @@ namespace GraphNodes
 
 			var textureNode = new Node("Texture");
 			textureNode.Location = new Point(300, 150);
-			var imageItem = new NodeImageItem(Properties.Resources.example, 64, 64, false, true);
+			var imageItem = new NodeImageItem(Properties.Resources.example, 64, 64, false, true) { Tag = 1000f };
 			imageItem.Clicked += new EventHandler<NodeItemEventArgs>(OnImgClicked);
 			textureNode.AddItem(imageItem);
 			graphControl.AddNode(textureNode);
 
-			graphControl.ConnectionAdded += new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionAdded);
+			graphControl.ConnectionAdded	+= new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionAdded);
+			graphControl.ConnectionAdding	+= new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionAdding);
 			graphControl.ConnectionRemoving += new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionRemoved);
 
 			graphControl.Connect(colorItem, check1Item);
@@ -81,6 +81,11 @@ namespace GraphNodes
 		}
 
 		void OnConnectionRemoved(object sender, AcceptNodeConnectionEventArgs e)
+		{
+			//e.Cancel = true;
+		}
+
+		void OnConnectionAdding(object sender, AcceptNodeConnectionEventArgs e)
 		{
 			//e.Cancel = true;
 		}
@@ -126,7 +131,6 @@ namespace GraphNodes
 			var redChannel = new NodeSliderItem("R", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var greenChannel = new NodeSliderItem("G", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var blueChannel = new NodeSliderItem("B", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
-			var alphaChannel = new NodeNumericSliderItem("A", 64.0f, 16.0f, 0, 1.0f, 0.0f, false, false);
 			var colorItem = new NodeColorItem("Color", Color.Black, false, true);
 
 			EventHandler<NodeItemEventArgs> channelChangedDelegate = delegate(object s, NodeItemEventArgs args)
@@ -134,19 +138,16 @@ namespace GraphNodes
 				var red = redChannel.Value;
 				var green = blueChannel.Value;
 				var blue = greenChannel.Value;
-				var alpha = alphaChannel.Value;
-				colorItem.Color = Color.FromArgb((int)Math.Round(alpha * 255), (int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
+				colorItem.Color = Color.FromArgb((int)Math.Round(red * 255), (int)Math.Round(green * 255), (int)Math.Round(blue * 255));
 			};
 			redChannel.ValueChanged += channelChangedDelegate;
 			greenChannel.ValueChanged += channelChangedDelegate;
 			blueChannel.ValueChanged += channelChangedDelegate;
-			alphaChannel.ValueChanged += channelChangedDelegate;
 
 
 			colorNode.AddItem(redChannel);
 			colorNode.AddItem(greenChannel);
 			colorNode.AddItem(blueChannel);
-			colorNode.AddItem(alphaChannel);
 
 			colorItem.Clicked += new EventHandler<NodeItemEventArgs>(OnColClicked);
 			colorNode.AddItem(colorItem);

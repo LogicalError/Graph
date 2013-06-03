@@ -30,6 +30,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using Graph.Compatibility;
 
 namespace Graph
 {
@@ -40,6 +41,7 @@ namespace Graph
 		{
 			InitializeComponent();
 			this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.Selectable | ControlStyles.UserPaint, true);
+			CompatibilityStrategy = new AlwaysCompatible();
 		}
 		#endregion
 
@@ -347,6 +349,21 @@ namespace Graph
 				this.Invalidate();
 			}
 		}
+		#endregion
+
+		#region HighlightCompatible
+		/// <summary>
+		/// Should compatible connectors be highlighted when dragging a connection?
+		/// </summary>
+		[DisplayName( "Highlight Compatible Node Items" )]
+		[Description( "Should compatible connectors be highlighted when dragging a connection?" )]
+		[Category( "Behavior" )]
+		public bool HighlightCompatible { get; set; }
+
+		/// <summary>
+		/// The strategy that will be applied to determine if two node item connectors are compatible with each other
+		/// </summary>
+		public ICompatibilityStrategy CompatibilityStrategy { get; set; }
 		#endregion
 
 
@@ -816,7 +833,6 @@ namespace Graph
 			{
 				if (dragging)
 				{
-
 					if (DragElement != null)
 					{
 						RenderState renderState = RenderState.Dragging | RenderState.Hover;
@@ -824,19 +840,13 @@ namespace Graph
 						{
 							case ElementType.OutputConnector:
 								var outputConnector = DragElement as NodeConnector;
-								if ((outputConnector.state & RenderState.Forbidden) != 0)
-								{
-									renderState = RenderState.Forbidden;
-								}
+								renderState |= (outputConnector.state & (RenderState.Incompatible | RenderState.Compatible));
 								GraphRenderer.RenderOutputConnection(e.Graphics, outputConnector, 
 									transformed_location.X, transformed_location.Y, renderState);
 								break;
 							case ElementType.InputConnector:
 								var inputConnector = DragElement as NodeConnector;
-								if ((inputConnector.state & RenderState.Forbidden) != 0)
-								{
-									renderState = RenderState.Forbidden;
-								}
+								renderState |= (inputConnector.state & (RenderState.Incompatible | RenderState.Compatible));
 								GraphRenderer.RenderInputConnection(e.Graphics, inputConnector, 
 									transformed_location.X, transformed_location.Y, renderState);
 								break;
@@ -984,6 +994,53 @@ namespace Graph
 						if (connection != null)
 							originalLocation = connection.To.Center;
 					}
+
+					// Should compatible connectors be highlighted?
+					if (HighlightCompatible && null != CompatibilityStrategy)
+					{
+						var connectorFrom = element as NodeConnector;
+						if (connectorFrom == null)
+						{
+							var connection = element as NodeConnection;
+							if (connection != null)
+								connectorFrom = connection.From;
+						}
+						if (connectorFrom != null)
+						{
+							if (element.ElementType == ElementType.InputConnector)
+							{
+								// Iterate over all nodes
+								foreach (Node graphNode in graphNodes)
+								{
+									// Check compatibility of node connectors
+									foreach (NodeConnector connectorTo in graphNode.outputConnectors)
+									{
+										if (CompatibilityStrategy.CanConnect(connectorFrom, connectorTo))
+										{
+											SetFlag(connectorTo, RenderState.Compatible, true);
+										} else
+											SetFlag(connectorTo, RenderState.Incompatible, true);
+									}
+								}
+							} else
+							{
+								// Iterate over all nodes
+								foreach (Node graphNode in graphNodes)
+								{
+									// Check compatibility of node connectors
+									foreach (NodeConnector connectorTo in graphNode.inputConnectors)
+									{
+										if (CompatibilityStrategy.CanConnect(connectorFrom, connectorTo))
+										{
+											SetFlag(connectorTo, RenderState.Compatible, true);
+										} else
+											SetFlag(connectorTo, RenderState.Incompatible, true);
+									}
+								}
+							}
+						}
+					}
+
 					FocusElement =
 						DragElement = element;
 					BringElementToFront(element);
@@ -1158,7 +1215,8 @@ namespace Graph
 					mouseMoved = true;
 					if (DragElement != null)
 					{
-						BringElementToFront(DragElement); 
+						BringElementToFront(DragElement);
+
 						switch (DragElement.ElementType)
 						{
 							case ElementType.NodeSelection:		// drag nodes
@@ -1196,9 +1254,8 @@ namespace Graph
 								var outputConnector		= connection.From;
 								FocusElement			= outputConnector.Node;
 								if (Disconnect(connection))
-								{
 									DragElement	= outputConnector;
-								} else
+								else
 									DragElement = null;
 
 								goto case ElementType.OutputConnector;
@@ -1206,8 +1263,6 @@ namespace Graph
 							case ElementType.InputConnector:	// drag connection from input or output connector
 							case ElementType.OutputConnector:
 							{
-								// Reset forbidden flag (in case it was set in earlier iteration).
-								SetFlag(DragElement, RenderState.Forbidden, false);
 								snappedLocation = lastLocation = currentLocation;
 								needRedraw = true;
 								break;
@@ -1219,6 +1274,8 @@ namespace Graph
 
 			NodeConnector destinationConnector = null;
 			IElement draggingOverElement = null;
+
+			SetFlag(DragElement, (RenderState.Compatible | RenderState.Incompatible), false);
 			var element = FindElementAt(transformed_location);
 			if (element != null)
 			{
@@ -1247,32 +1304,36 @@ namespace Graph
 							if (DragElement.ElementType == ElementType.InputConnector)
 							{
 								var dragConnector = DragElement as NodeConnector;
+								if (dragConnector == null)
+									break;
+								
 								if (node.outputConnectors.Count == 1)
 								{
 									// Check if this connection would be allowed.
-									if (ConnectionIsAllowed(DragElement as NodeConnector,node.outputConnectors[0]))
+									if (ConnectionIsAllowed(dragConnector, node.outputConnectors[0]))
 									{
 										element = node.outputConnectors[0];
 										goto case ElementType.OutputConnector;
 									}
 								}
-
 								if (node != dragConnector.Node)
 									draggingOverElement = node;
 							} else
 							if (DragElement.ElementType == ElementType.OutputConnector)
 							{
 								var dragConnector = DragElement as NodeConnector;
+								if (dragConnector == null)
+									break;
+
 								if (node.inputConnectors.Count == 1)
 								{
 									// Check if this connection would be allowed.
-									if (ConnectionIsAllowed(DragElement as NodeConnector,node.inputConnectors[0]))
+									if (ConnectionIsAllowed(dragConnector, node.inputConnectors[0]))
 									{
 										element = node.inputConnectors[0];
 										goto case ElementType.InputConnector;
 									}
 								}
-
 								if (node != dragConnector.Node)
 									draggingOverElement = node;
 							}
@@ -1285,32 +1346,32 @@ namespace Graph
 					case ElementType.OutputConnector:
 					{
 						destinationConnector = element as NodeConnector;
-
+						if (destinationConnector == null)
+							break;
+						
 						if (DragElement != null &&
 							(DragElement.ElementType == ElementType.InputConnector ||
 							 DragElement.ElementType == ElementType.OutputConnector))
 						{
 							var dragConnector = DragElement as NodeConnector;
-							if (dragConnector.Node == destinationConnector.Node ||
-								DragElement.ElementType == element.ElementType)
+							if (dragConnector != null)
 							{
-								element = null;
-								break;
-							} else 
-							{
-								// Check if this connection would be allowed.
-								if (!ConnectionIsAllowed(DragElement as NodeConnector,element as NodeConnector))
+								if (dragConnector.Node == destinationConnector.Node ||
+									DragElement.ElementType == element.ElementType)
 								{
-									// If the event was canceled, set the forbidden flag on the connector.
-									// The flag will be automatically cleared during the next frame.
-									dragConnector.state = SetFlag(dragConnector.state,RenderState.Forbidden, true);
-									// Don't store the element, thus disabling the possibility for connecting.
 									element = null;
-									break;
+								} else
+								{
+									if (!ConnectionIsAllowed(dragConnector, destinationConnector))
+									{
+										SetFlag(DragElement, RenderState.Incompatible, true);
+									} else
+									{
+										SetFlag(DragElement, (destinationConnector.state & (RenderState.Compatible | RenderState.Incompatible)), true);
+									}
 								}
 							}
 						}
-
 						draggingOverElement = destinationConnector.Node;
 						break;
 					}
@@ -1370,6 +1431,12 @@ namespace Graph
 		/// <returns></returns>
 		private bool ConnectionIsAllowed(NodeConnector from, NodeConnector to)
 		{
+			if (HighlightCompatible && null != CompatibilityStrategy)
+			{
+				if (!CompatibilityStrategy.CanConnect(from, to))
+					return false;
+			}
+
 			// If someone has subscribed to the ConnectionAdding event,
 			// give them a chance to interrupt this connection attempt.
 			if (null != ConnectionAdding) 
@@ -1383,10 +1450,7 @@ namespace Graph
 				var eventArgs = new AcceptNodeConnectionEventArgs(connection);
 				ConnectionAdding(this, eventArgs);
 				if (eventArgs.Cancel)
-				{
-					
 					return false;
-				}
 			}
 			return true;
 		}
@@ -1420,6 +1484,7 @@ namespace Graph
 			bool needRedraw = false;
 			if (!dragging)
 				return;
+			
 			try
 			{
 				Point currentLocation;
@@ -1450,8 +1515,7 @@ namespace Graph
 								SetFlag(node, RenderState.Focus, false, false);
 
 							foreach (var node in unselectedNodes)
-								SetFlag(node, RenderState.Focus, true, false);
-							
+								SetFlag(node, RenderState.Focus, true, false);							
 						} else
 						{
 							NodeSelection selection = null;
@@ -1486,7 +1550,8 @@ namespace Graph
 							var inputConnector	= (NodeConnector)DragElement;
 							var outputConnector = HoverElement as NodeOutputConnector;
 							if (outputConnector != null &&
-								outputConnector.Node != inputConnector.Node)
+								outputConnector.Node != inputConnector.Node &&
+								(inputConnector.state & RenderState.Compatible) != 0)
 								FocusElement = Connect(outputConnector, inputConnector);
 							needRedraw = true;
 							return;
@@ -1496,7 +1561,8 @@ namespace Graph
 							var outputConnector = (NodeConnector)DragElement;
 							var inputConnector	= HoverElement as NodeInputConnector;
 							if (inputConnector != null &&
-								inputConnector.Node != outputConnector.Node)
+								inputConnector.Node != outputConnector.Node &&
+								(outputConnector.state & RenderState.Compatible) != 0)
 								FocusElement = Connect(outputConnector, inputConnector);
 							needRedraw = true;
 							return;
@@ -1521,6 +1587,19 @@ namespace Graph
 			}
 			finally
 			{
+				if (HighlightCompatible)
+				{
+					// Remove all highlight flags
+					foreach (Node graphNode in graphNodes)
+					{
+						foreach (NodeConnector inputConnector in graphNode.inputConnectors)
+							SetFlag(inputConnector, RenderState.Compatible | RenderState.Incompatible, false);
+
+						foreach (NodeConnector outputConnector in graphNode.outputConnectors)
+							SetFlag(outputConnector, RenderState.Compatible | RenderState.Incompatible, false);
+					}
+				}
+
 				if (DragElement != null)
 				{
 					var nodeItem = DragElement as NodeItem;

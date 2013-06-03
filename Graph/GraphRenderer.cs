@@ -84,9 +84,24 @@ namespace Graph
 			{
 				graphics.FillEllipse(brush, bounds);
 			}
+			
 			if (state == RenderState.None)
 			{
 				graphics.DrawEllipse(Pens.Black, bounds);
+			} else
+			// When we're compatible, but not dragging from this node we render a highlight
+			if ((state & (RenderState.Compatible | RenderState.Dragging)) == RenderState.Compatible) 
+			{
+				// First draw the normal black border
+				graphics.DrawEllipse(Pens.Black, bounds);
+
+				// Draw an additional highlight around the connector
+				RectangleF highlightBounds = new RectangleF(bounds.X,bounds.Y,bounds.Width,bounds.Height);
+				highlightBounds.Width += 10;
+				highlightBounds.Height += 10;
+				highlightBounds.X -= 5;
+				highlightBounds.Y -= 5;
+				graphics.DrawEllipse(Pens.OrangeRed, highlightBounds);
 			} else
 			{
 				graphics.DrawArc(Pens.Black, bounds, 90, 180);
@@ -94,7 +109,7 @@ namespace Graph
 				{
 					graphics.DrawArc(pen, bounds, 270, 180);
 				}
-			}
+			}			
 		}
 
 		static void RenderArrow(Graphics graphics, RectangleF bounds, RenderState connectionState)
@@ -315,9 +330,9 @@ namespace Graph
 									connected = true;
 								}
 							}
-							
+
 							RenderConnector(graphics, 
-											inputConnector.bounds, 
+											inputConnector.bounds,
 											inputConnector.state);
 
 							if (connected)
@@ -468,21 +483,32 @@ namespace Graph
 
 		static Color GetArrowLineColor(RenderState state)
 		{
-			if ((state & (RenderState.Dragging | RenderState.Focus)) != 0)
+			if ((state & (RenderState.Hover | RenderState.Dragging)) != 0)
 			{
-				return Color.DarkOrange;
+				if ((state & RenderState.Incompatible) != 0)
+				{
+					return Color.Red;
+				} else
+				if ((state & RenderState.Compatible) != 0)
+				{
+					return Color.DarkOrange;
+				} else
+				if ((state & RenderState.Dragging) != 0)
+					return Color.SteelBlue;
+				else
+					return Color.DarkOrange;
 			} else
-			if ((state & RenderState.Hover) != 0)
+			if ((state & RenderState.Incompatible) != 0)
 			{
-				return Color.SteelBlue;
+				return Color.Gray;
+			} else
+			if ((state & RenderState.Compatible) != 0)
+			{
+				return Color.White;
 			} else
 			if ((state & RenderState.Connected) != 0)
 			{
 				return Color.Black;
-			} else
-			if ((state & RenderState.Forbidden) != 0)
-			{
-				return Color.Red;
 			} else
 				return Color.LightGray;
 		}
