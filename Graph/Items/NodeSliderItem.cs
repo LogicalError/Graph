@@ -30,7 +30,7 @@ using System.Drawing.Drawing2D;
 
 namespace Graph.Items
 {
-	public sealed class NodeSliderItem : NodeItem
+	public class NodeSliderItem : NodeItem
 	{
 		public event EventHandler<NodeItemEventArgs> Clicked;
 		public event EventHandler<NodeItemEventArgs> ValueChanged;
@@ -123,10 +123,10 @@ namespace Graph.Items
 		internal SizeF textSize;
 		internal RectangleF sliderRect;
 
-		
-		const int SliderBoxSize = 4;
-		const int SliderHeight	= 8;
-		const int Spacing		= 2;
+
+		protected const int SliderBoxSize = 4;
+		protected const int SliderHeight	= 8;
+		protected const int Spacing		= 2;
 
 		internal override SizeF Measure(Graphics graphics)
 		{

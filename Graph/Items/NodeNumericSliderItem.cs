@@ -21,134 +21,34 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 
 namespace Graph.Items
 {
-	public sealed class NodeNumericSliderItem : NodeItem
+	/// <summary>
+	/// An item that contains a slider which displays its value as a text on the slider itself
+	/// </summary>
+	public sealed class NodeNumericSliderItem : NodeSliderItem
 	{
-		public event EventHandler<NodeItemEventArgs> Clicked;
-		public event EventHandler<NodeItemEventArgs> ValueChanged;
+		/// <summary>
+		/// Construct a new NodeNumericSliderItem.
+		/// </summary>
+		/// <param name="text">The label for the item.</param>
+		/// <param name="sliderSize">The minimum size the slider should have inside the parent node.</param>
+		/// <param name="textSize">The text size.</param>
+		/// <param name="minValue">The lowest possible value for the slider.</param>
+		/// <param name="maxValue">The highest possible value for the slider.</param>
+		/// <param name="defaultValue">The value the slider should start with.</param>
+		/// <param name="inputEnabled">Does the item accept an input to be connected?</param>
+		/// <param name="outputEnabled">Does the item accept an output to be connected?</param>
+		public NodeNumericSliderItem( string text, float sliderSize, float textSize, float minValue, float maxValue, float defaultValue, bool inputEnabled, bool outputEnabled ) : base( text, sliderSize, textSize, minValue, maxValue, defaultValue, inputEnabled, outputEnabled ) {}
 
-		public NodeNumericSliderItem(string text, float sliderSize, float textSize, float minValue, float maxValue, float defaultValue, bool inputEnabled, bool outputEnabled) :
-			base(inputEnabled, outputEnabled)
-		{
-			this.Text = text;
-			this.MinimumSliderSize = sliderSize;
-			this.TextSize = textSize;
-			this.MinValue = Math.Min(minValue, maxValue);
-			this.MaxValue = Math.Max(minValue, maxValue);
-			this.Value = defaultValue;
-		}
-
-		#region Text
-		string internalText = string.Empty;
-		public string Text
-		{
-			get { return internalText; }
-			set
-			{
-				if (internalText == value)
-					return;
-				internalText = value;
-				itemSize = Size.Empty;
-			}
-		}
-		#endregion
-
-		#region Dragging
-		internal bool Dragging { get; set; }
-		#endregion
-
-		public float MinimumSliderSize	{ get; set; }
-		public float TextSize			{ get; set; }
-
-		public float MinValue { get; set; }
-		public float MaxValue { get; set; }
-
-		float internalValue = 0.0f;
-		public float Value				
-		{
-			get { return internalValue; }
-			set
-			{
-				var newValue = value;
-				if (newValue < MinValue) newValue = MinValue;
-				if (newValue > MaxValue) newValue = MaxValue;
-				if (internalValue == newValue)
-					return;
-				internalValue = newValue;
-				if (ValueChanged != null)
-					ValueChanged(this, new NodeItemEventArgs(this));
-			}
-		}
-
-
-		public override bool OnClick()
-		{
-			base.OnClick();
-			if (Clicked != null)
-				Clicked(this, new NodeItemEventArgs(this));
-			return true;
-		}
-
-		public override bool OnStartDrag(PointF location, out PointF original_location) 
-		{
-			base.OnStartDrag(location, out original_location);
-			var size = (MaxValue - MinValue);
-			original_location.Y = location.Y;
-			original_location.X = ((Value / size) * sliderRect.Width) + sliderRect.Left;
-			Value = ((location.X - sliderRect.Left) / sliderRect.Width) * size;
-			Dragging = true; 
-			return true; 
-		}
-
-		public override bool OnDrag(PointF location) 
-		{
-			base.OnDrag(location);
-			var size = (MaxValue - MinValue);
-			Value = ((location.X - sliderRect.Left) / sliderRect.Width) * size;
-			return true; 
-		}
-
-		public override bool OnEndDrag() { base.OnEndDrag(); Dragging = false; return true; }
-
-
-		internal SizeF itemSize;
-		internal SizeF textSize;
-		internal RectangleF sliderRect;
-
-		
-		const int SliderBoxSize = 4;
-		const int SliderHeight	= 12;
-		const int Spacing		= 2;
-
-		internal override SizeF Measure(Graphics graphics)
-		{
-			if (!string.IsNullOrWhiteSpace(this.Text))
-			{
-				if (this.itemSize.IsEmpty)
-				{
-					var size = new Size(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
-					var sliderWidth = this.MinimumSliderSize + SliderBoxSize;
-
-					this.textSize			= (SizeF)graphics.MeasureString(this.Text, SystemFonts.MenuFont, size, GraphConstants.LeftMeasureTextStringFormat);
-					this.textSize.Width		= Math.Max(this.TextSize, this.textSize.Width + 4);
-					this.itemSize.Width		= Math.Max(size.Width, this.textSize.Width + sliderWidth + Spacing);
-					this.itemSize.Height	= Math.Max(size.Height, this.textSize.Height);
-				}
-				return this.itemSize;
-			} else
-			{
-				return new SizeF(GraphConstants.MinimumItemWidth, GraphConstants.MinimumItemHeight);
-			}
-		}
-
+		/// <summary>
+		/// Render the slider.
+		/// </summary>
+		/// <param name="graphics">The <see cref="Graphics"/> instance that should be used for drawing.</param>
+		/// <param name="minimumSize">The smallest size the slider has to fit into.</param>
+		/// <param name="location">Where the slider should be drawn.</param>
 		internal override void Render(Graphics graphics, SizeF minimumSize, PointF location)
 		{
 			var size = Measure(graphics);
