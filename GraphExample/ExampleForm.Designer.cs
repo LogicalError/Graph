@@ -28,12 +28,18 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
+			this.components = new System.ComponentModel.Container();
+			Graph.Compatibility.AlwaysCompatible alwaysCompatible1 = new Graph.Compatibility.AlwaysCompatible();
 			this.label1 = new System.Windows.Forms.Label();
 			this.showLabelsCheckBox = new System.Windows.Forms.CheckBox();
 			this.label2 = new System.Windows.Forms.Label();
 			this.label3 = new System.Windows.Forms.Label();
 			this.label4 = new System.Windows.Forms.Label();
+			this.nodeMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+			this.testMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.nodeToolTip = new System.Windows.Forms.ToolTip(this.components);
 			this.graphControl = new Graph.GraphControl();
+			this.nodeMenu.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// label1
@@ -88,6 +94,23 @@
 			this.label4.Text = "color node";
 			this.label4.MouseDown += new System.Windows.Forms.MouseEventHandler(this.ColorNode_MouseDown);
 			// 
+			// nodeMenu
+			// 
+			this.nodeMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.testMenuItem});
+			this.nodeMenu.Name = "NodeMenu";
+			this.nodeMenu.Size = new System.Drawing.Size(97, 26);
+			// 
+			// testMenuItem
+			// 
+			this.testMenuItem.Name = "testMenuItem";
+			this.testMenuItem.Size = new System.Drawing.Size(96, 22);
+			this.testMenuItem.Text = "Test";
+			// 
+			// nodeToolTip
+			// 
+			this.nodeToolTip.ToolTipTitle = "Test";
+			// 
 			// graphControl
 			// 
 			this.graphControl.AllowDrop = true;
@@ -95,7 +118,9 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.graphControl.BackColor = System.Drawing.SystemColors.Window;
+			this.graphControl.CompatibilityStrategy = alwaysCompatible1;
 			this.graphControl.FocusElement = null;
+			this.graphControl.GridColor = System.Drawing.Color.LightGray;
 			this.graphControl.HighlightCompatible = true;
 			this.graphControl.Location = new System.Drawing.Point(108, 12);
 			this.graphControl.Name = "graphControl";
@@ -118,6 +143,7 @@
 			this.DoubleBuffered = true;
 			this.Name = "ExampleForm";
 			this.Text = "Form1";
+			this.nodeMenu.ResumeLayout(false);
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -131,6 +157,9 @@
 		private System.Windows.Forms.Label label2;
 		private System.Windows.Forms.Label label3;
 		private System.Windows.Forms.Label label4;
+		private System.Windows.Forms.ContextMenuStrip nodeMenu;
+		private System.Windows.Forms.ToolStripMenuItem testMenuItem;
+		private System.Windows.Forms.ToolTip nodeToolTip;
 	}
 }
 

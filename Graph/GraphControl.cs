@@ -34,6 +34,8 @@ using Graph.Compatibility;
 
 namespace Graph
 {
+	public delegate bool AcceptElement(IElement element);
+
 	public partial class GraphControl : Control
 	{
 		#region Constructor
@@ -49,11 +51,30 @@ namespace Graph
 		public event EventHandler<AcceptNodeEventArgs>				NodeAdded;
 		public event EventHandler<AcceptNodeEventArgs>				NodeRemoving;
 		public event EventHandler<NodeEventArgs>					NodeRemoved;
+		public event EventHandler<AcceptElementLocationEventArgs>	ShowElementMenu;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdding;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionAdded;
 		public event EventHandler<AcceptNodeConnectionEventArgs>	ConnectionRemoving;
 		public event EventHandler<NodeConnectionEventArgs>			ConnectionRemoved;
 
+		#region Grid
+		public bool		ShowGrid			= true;
+		public float	GridStep			= 16.0f;
+		private Color	internalGridColor	= Color.LightGray;
+		private Pen		GridPen				= new Pen(Color.LightGray);
+		public Color	GridColor
+		{
+			get { return internalGridColor; }
+			set
+			{
+				if (internalGridColor == value)
+					return;
+
+				internalGridColor = value;
+				GridPen = new Pen(internalGridColor);
+			}
+		}
+		#endregion
 
 		#region DragElement
 		IElement internalDragElement;
@@ -762,6 +783,62 @@ namespace Graph
 		}
 		#endregion
 		
+		#region FindElementAt
+		IElement FindElementAt(PointF location, AcceptElement acceptElement)
+		{
+			foreach (var node in graphNodes)
+			{
+				var inputConnector = FindInputConnectorAt(node, location);
+				if (inputConnector != null && acceptElement(inputConnector))
+					return inputConnector;
+
+				var outputConnector = FindOutputConnectorAt(node, location);
+				if (outputConnector != null && acceptElement(outputConnector))
+					return outputConnector;
+
+				if (node.bounds.Contains(location))
+				{
+					var item = FindNodeItemAt(node, location);
+					if (item != null && acceptElement(item))
+						return item;
+					if (acceptElement(node))
+						return node;
+					else
+						return null;
+				}
+			}
+
+			var skipConnections		= new HashSet<NodeConnection>();
+			var foundConnections	= new List<NodeConnection>();
+			foreach (var node in graphNodes)
+			{
+				foreach (var connection in node.connections)
+				{
+					if (skipConnections.Add(connection)) // if we can add it, we haven't checked it yet
+					{
+						if (connection.bounds.Contains(location))
+							foundConnections.Insert(0, connection);
+					}
+				}
+			}
+			foreach (var connection in foundConnections)
+			{
+				if (connection.textBounds.Contains(location) && acceptElement(connection))
+					return connection;
+			}
+			foreach (var connection in foundConnections)
+			{
+				using (var region = GraphRenderer.GetConnectionRegion(connection))
+				{
+					if (region.IsVisible(location) && acceptElement(connection))
+						return connection;
+				}
+			}
+
+			return null;
+		}
+		#endregion
+		
 		#region GetTransformedLocation
 		PointF GetTransformedLocation()
 		{
@@ -800,22 +877,23 @@ namespace Graph
 
 			if (e.Graphics == null)
 				return;
+			
 
-			e.Graphics.Clear(Color.White);
+			e.Graphics.PageUnit				= GraphicsUnit.Pixel;
+			e.Graphics.CompositingQuality	= CompositingQuality.GammaCorrected;
+			e.Graphics.TextRenderingHint	= TextRenderingHint.ClearTypeGridFit;
+			e.Graphics.PixelOffsetMode		= PixelOffsetMode.HighQuality;
+			e.Graphics.InterpolationMode	= InterpolationMode.HighQualityBicubic;
+
+			UpdateMatrices();			
+			e.Graphics.Transform			= transformation;
+
+			OnDrawBackground(e);
+			
+			e.Graphics.SmoothingMode		= SmoothingMode.HighQuality;
 
 			if (this.graphNodes.Count == 0)
 				return;
-
-			UpdateMatrices();
-			e.Graphics.PageUnit = GraphicsUnit.Pixel;
-			e.Graphics.CompositingQuality	= CompositingQuality.GammaCorrected;
-			e.Graphics.InterpolationMode	= InterpolationMode.HighQualityBicubic;
-			e.Graphics.SmoothingMode		= SmoothingMode.HighQuality;
-			e.Graphics.TextRenderingHint	= TextRenderingHint.ClearTypeGridFit;
-			e.Graphics.PixelOffsetMode		= PixelOffsetMode.HighQuality;
-			
-			
-			e.Graphics.Transform			= transformation;
 
 			
 			var transformed_location = GetTransformedLocation();
@@ -853,6 +931,41 @@ namespace Graph
 						}
 					}
 				}
+			}
+		}
+		#endregion
+
+		#region OnDrawBackground
+		virtual protected void OnDrawBackground(PaintEventArgs e)
+		{
+			e.Graphics.Clear(Color.White);
+
+			if (!ShowGrid)
+				return;
+
+			var points		= new PointF[]{
+								new PointF(e.ClipRectangle.Left , e.ClipRectangle.Top),
+								new PointF(e.ClipRectangle.Right, e.ClipRectangle.Bottom)
+							};
+
+			inverse_transformation.TransformPoints(points);
+
+			var left		= points[0].X;
+			var right		= points[1].X;
+			var top			= points[0].Y;
+			var bottom		= points[1].Y;
+			var stepScaled	= GridStep;
+			
+			var xOffset		= ((float)Math.Round(left / stepScaled) * stepScaled);
+			var yOffset		= ((float)Math.Round(top  / stepScaled) * stepScaled);
+
+			if (stepScaled > 3)
+			{
+				for (float x = xOffset; x < right; x += stepScaled)
+					e.Graphics.DrawLine(GridPen, x, top, x, bottom);
+
+				for (float y = yOffset; y < bottom; y += stepScaled)
+					e.Graphics.DrawLine(GridPen, left, y, right, y);
 			}
 		}
 		#endregion
@@ -1436,7 +1549,7 @@ namespace Graph
 				if (!CompatibilityStrategy.CanConnect(from, to))
 					return false;
 			}
-
+			
 			// If someone has subscribed to the ConnectionAdding event,
 			// give them a chance to interrupt this connection attempt.
 			if (null != ConnectionAdding) 
@@ -1663,8 +1776,8 @@ namespace Graph
 		}
 		#endregion
 
-		#region OnClick
-		protected override void OnClick(EventArgs e)
+		#region OnMouseClick
+		protected override void OnMouseClick(MouseEventArgs e)
 		{
 			try
 			{
@@ -1675,6 +1788,31 @@ namespace Graph
 				var points = new Point[] { lastLocation };
 				inverse_transformation.TransformPoints(points);
 				var transformed_location = points[0];
+
+				if (e.Button == MouseButtons.Right)
+				{
+					if (null != ShowElementMenu)
+					{
+						// See if we clicked on an element and give our owner the chance to show a menu
+						var result = FindElementAt(transformed_location, delegate(IElement el)
+						{
+							// Fire the event and see if someone cancels it.
+							var eventArgs = new AcceptElementLocationEventArgs(el, this.PointToScreen(lastLocation));
+							// Give our owner the chance to show a menu for this element ...
+							ShowElementMenu(this, eventArgs);
+							// If the owner declines (cancel == true) then we'll continue looking up the hierarchy ..
+							return !eventArgs.Cancel;
+						});
+						// If we haven't found anything to click on we'll just return the event with a null pointer .. 
+						//	allowing our owner to show a generic menu
+						if (result == null)
+						{
+							var eventArgs = new AcceptElementLocationEventArgs(null, this.PointToScreen(lastLocation));
+							ShowElementMenu(this, eventArgs);							
+						}
+						return;
+					}
+				}
 
 				var element = FindElementAt(transformed_location);
 				if (element == null)
@@ -1705,7 +1843,7 @@ namespace Graph
 			}
 			finally
 			{
-				base.OnClick(e);
+				base.OnMouseClick(e);
 			}
 		}
 		#endregion

@@ -66,6 +66,7 @@ namespace GraphNodes
 			graphControl.ConnectionAdded	+= new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionAdded);
 			graphControl.ConnectionAdding	+= new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionAdding);
 			graphControl.ConnectionRemoving += new EventHandler<AcceptNodeConnectionEventArgs>(OnConnectionRemoved);
+			graphControl.ShowElementMenu	+= new EventHandler<AcceptElementLocationEventArgs>(OnShowElementMenu);
 
 			graphControl.Connect(colorItem, check1Item);
 		}
@@ -83,6 +84,36 @@ namespace GraphNodes
 		void OnConnectionRemoved(object sender, AcceptNodeConnectionEventArgs e)
 		{
 			//e.Cancel = true;
+		}
+
+		void OnShowElementMenu(object sender, AcceptElementLocationEventArgs e)
+		{
+			if (e.Element == null)
+			{
+				// Show a test menu for when you click on nothing
+				testMenuItem.Text = "(clicked on nothing)";
+				nodeMenu.Show(e.Position);
+				e.Cancel = false;
+			} else
+			if (e.Element is Node)
+			{
+				// Show a test menu for a node
+				testMenuItem.Text = ((Node)e.Element).Title;
+				nodeMenu.Show(e.Position);
+				e.Cancel = false;
+			} else
+			if (e.Element is NodeItem)
+			{
+				// Show a test menu for a nodeItem
+				testMenuItem.Text = e.Element.GetType().Name;
+				nodeMenu.Show(e.Position);
+				e.Cancel = false;
+			} else
+			{
+				// if you don't want to show a menu for this item (but perhaps show a menu for something more higher up) 
+				// then you can cancel the event
+				e.Cancel = true;
+			}
 		}
 
 		void OnConnectionAdding(object sender, AcceptNodeConnectionEventArgs e)
