@@ -37,7 +37,6 @@
 			this.label4 = new System.Windows.Forms.Label();
 			this.nodeMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.testMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.nodeToolTip = new System.Windows.Forms.ToolTip(this.components);
 			this.graphControl = new Graph.GraphControl();
 			this.nodeMenu.SuspendLayout();
 			this.SuspendLayout();
@@ -56,7 +55,7 @@
 			// 
 			this.showLabelsCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.showLabelsCheckBox.AutoSize = true;
-			this.showLabelsCheckBox.Location = new System.Drawing.Point(12, 373);
+			this.showLabelsCheckBox.Location = new System.Drawing.Point(12, 521);
 			this.showLabelsCheckBox.Name = "showLabelsCheckBox";
 			this.showLabelsCheckBox.Size = new System.Drawing.Size(87, 17);
 			this.showLabelsCheckBox.TabIndex = 2;
@@ -107,25 +106,24 @@
 			this.testMenuItem.Size = new System.Drawing.Size(96, 22);
 			this.testMenuItem.Text = "Test";
 			// 
-			// nodeToolTip
-			// 
-			this.nodeToolTip.ToolTipTitle = "Test";
-			// 
 			// graphControl
 			// 
 			this.graphControl.AllowDrop = true;
 			this.graphControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.graphControl.BackColor = System.Drawing.SystemColors.Window;
+			this.graphControl.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(16)))), ((int)(((byte)(16)))));
 			this.graphControl.CompatibilityStrategy = alwaysCompatible1;
 			this.graphControl.FocusElement = null;
-			this.graphControl.GridColor = System.Drawing.Color.LightGray;
 			this.graphControl.HighlightCompatible = true;
+			this.graphControl.LargeGridStep = 128F;
+			this.graphControl.LargeStepGridColor = System.Drawing.Color.FromArgb(((int)(((byte)(8)))), ((int)(((byte)(8)))), ((int)(((byte)(8)))));
 			this.graphControl.Location = new System.Drawing.Point(108, 12);
 			this.graphControl.Name = "graphControl";
 			this.graphControl.ShowLabels = false;
-			this.graphControl.Size = new System.Drawing.Size(678, 378);
+			this.graphControl.Size = new System.Drawing.Size(1180, 526);
+			this.graphControl.SmallGridStep = 16F;
+			this.graphControl.SmallStepGridColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(24)))), ((int)(((byte)(24)))));
 			this.graphControl.TabIndex = 0;
 			this.graphControl.Text = "graphControl";
 			// 
@@ -133,7 +131,8 @@
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(798, 402);
+			this.AutoSize = true;
+			this.ClientSize = new System.Drawing.Size(1300, 550);
 			this.Controls.Add(this.label4);
 			this.Controls.Add(this.label3);
 			this.Controls.Add(this.label2);
@@ -159,7 +158,6 @@
 		private System.Windows.Forms.Label label4;
 		private System.Windows.Forms.ContextMenuStrip nodeMenu;
 		private System.Windows.Forms.ToolStripMenuItem testMenuItem;
-		private System.Windows.Forms.ToolTip nodeToolTip;
 	}
 }
 

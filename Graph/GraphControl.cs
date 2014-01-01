@@ -58,20 +58,71 @@ namespace Graph
 		public event EventHandler<NodeConnectionEventArgs>			ConnectionRemoved;
 
 		#region Grid
-		public bool		ShowGrid			= true;
-		public float	GridStep			= 16.0f;
-		private Color	internalGridColor	= Color.LightGray;
-		private Pen		GridPen				= new Pen(Color.LightGray);
-		public Color	GridColor
-		{
-			get { return internalGridColor; }
+		public bool		ShowGrid					= true;
+		public float	internalSmallGridStep		= 16.0f;
+		[Description("The distance between the smallest grid lines"), Category("Appearance")] 
+		public float	SmallGridStep
+		{ 
+			get 
+			{
+				return internalSmallGridStep; 
+			}
 			set
 			{
-				if (internalGridColor == value)
+				if (internalSmallGridStep == value)
 					return;
 
-				internalGridColor = value;
-				GridPen = new Pen(internalGridColor);
+				internalSmallGridStep = value;
+				this.Invalidate();
+			}
+		}
+		public float	internalLargeGridStep			= 16.0f * 8.0f;
+		[Description("The distance between the largest grid lines"), Category("Appearance")] 
+		public float	LargeGridStep
+		{ 
+			get 
+			{ 
+				return internalLargeGridStep; 
+			}
+			set
+			{
+				if (internalLargeGridStep == value)
+					return;
+
+				internalLargeGridStep = value;
+				this.Invalidate();
+			}
+		}
+		private Color	internalSmallStepGridColor	= Color.Gray;
+		private Pen		SmallGridPen				= new Pen(Color.Gray);
+		[Description("The color for the grid lines with the smallest gap between them"), Category("Appearance")] 
+		public Color	SmallStepGridColor
+		{
+			get { return internalSmallStepGridColor; }
+			set
+			{
+				if (internalSmallStepGridColor == value)
+					return;
+
+				internalSmallStepGridColor = value;
+				SmallGridPen = new Pen(internalSmallStepGridColor);
+				this.Invalidate();
+			}
+		}
+		private Color	internalLargeStepGridColor	= Color.LightGray;
+		private Pen		LargeGridPen				= new Pen(Color.LightGray);
+		[Description("The color for the grid lines with the largest gap between them"), Category("Appearance")] 
+		public Color	LargeStepGridColor
+		{
+			get { return internalLargeStepGridColor; }
+			set
+			{
+				if (internalLargeStepGridColor == value)
+					return;
+
+				internalLargeStepGridColor = value;
+				LargeGridPen = new Pen(internalLargeStepGridColor);
+				this.Invalidate();
 			}
 		}
 		#endregion
@@ -114,6 +165,7 @@ namespace Graph
 		
 		#region FocusElement
 		IElement internalFocusElement;
+		[Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public IElement FocusElement
 		{
 			get { return internalFocusElement; }
@@ -356,6 +408,7 @@ namespace Graph
 
 		#region ShowLabels
 		bool internalShowLabels = false;
+		[Description("Show labels on the lines that connect the graph nodes"), Category("Appearance")]
 		public bool ShowLabels 
 		{ 
 			get 
@@ -384,12 +437,14 @@ namespace Graph
 		/// <summary>
 		/// The strategy that will be applied to determine if two node item connectors are compatible with each other
 		/// </summary>
+		[Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public ICompatibilityStrategy CompatibilityStrategy { get; set; }
 		#endregion
 
 
 		#region Nodes
 		readonly List<Node> graphNodes = new List<Node>();
+		[Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
 		public IEnumerable<Node> Nodes { get { return graphNodes; } }
 		#endregion
 
@@ -938,7 +993,7 @@ namespace Graph
 		#region OnDrawBackground
 		virtual protected void OnDrawBackground(PaintEventArgs e)
 		{
-			e.Graphics.Clear(Color.White);
+			e.Graphics.Clear(BackColor);
 
 			if (!ShowGrid)
 				return;
@@ -950,22 +1005,35 @@ namespace Graph
 
 			inverse_transformation.TransformPoints(points);
 
-			var left		= points[0].X;
-			var right		= points[1].X;
-			var top			= points[0].Y;
-			var bottom		= points[1].Y;
-			var stepScaled	= GridStep;
+			var left			= points[0].X;
+			var right			= points[1].X;
+			var top				= points[0].Y;
+			var bottom			= points[1].Y;
+			var smallStepScaled	= SmallGridStep;
 			
-			var xOffset		= ((float)Math.Round(left / stepScaled) * stepScaled);
-			var yOffset		= ((float)Math.Round(top  / stepScaled) * stepScaled);
+			var smallXOffset	= ((float)Math.Round(left / smallStepScaled) * smallStepScaled);
+			var smallYOffset	= ((float)Math.Round(top  / smallStepScaled) * smallStepScaled);
 
-			if (stepScaled > 3)
+			if (smallStepScaled > 3)
 			{
-				for (float x = xOffset; x < right; x += stepScaled)
-					e.Graphics.DrawLine(GridPen, x, top, x, bottom);
+				for (float x = smallXOffset; x < right; x += smallStepScaled)
+					e.Graphics.DrawLine(SmallGridPen, x, top, x, bottom);
 
-				for (float y = yOffset; y < bottom; y += stepScaled)
-					e.Graphics.DrawLine(GridPen, left, y, right, y);
+				for (float y = smallYOffset; y < bottom; y += smallStepScaled)
+					e.Graphics.DrawLine(SmallGridPen, left, y, right, y);
+			}
+
+			var largeStepScaled = LargeGridStep;
+			var largeXOffset	= ((float)Math.Round(left / largeStepScaled) * largeStepScaled);
+			var largeYOffset	= ((float)Math.Round(top  / largeStepScaled) * largeStepScaled);
+
+			if (largeStepScaled > 3)
+			{
+				for (float x = largeXOffset; x < right; x += largeStepScaled)
+					e.Graphics.DrawLine(LargeGridPen, x, top, x, bottom);
+
+				for (float y = largeYOffset; y < bottom; y += largeStepScaled)
+					e.Graphics.DrawLine(LargeGridPen, left, y, right, y);
 			}
 		}
 		#endregion

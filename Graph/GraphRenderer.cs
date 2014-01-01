@@ -78,6 +78,8 @@ namespace Graph
 			item.Render(graphics, minimumSize, position);
 		}
 
+		private static Pen BorderPen = new Pen(Color.FromArgb(64, 64, 64));
+
 		static void RenderConnector(Graphics graphics, RectangleF bounds, RenderState state)
 		{
 			using (var brush = new SolidBrush(GetArrowLineColor(state)))
@@ -273,7 +275,7 @@ namespace Graph
 				{
 					graphics.FillPath(Brushes.LightGray, path);
 				}
-				graphics.DrawPath(Pens.DarkGray, path);
+				graphics.DrawPath(BorderPen, path);
 			}
 			/*
 			if (!node.Collapsed)
