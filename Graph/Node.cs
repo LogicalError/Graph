@@ -126,6 +126,46 @@ namespace Graph
 			item.Node = null;
 			nodeItems.Remove(item);
 		}
+		
+		// Returns true if there are some connections that aren't connected
+		public bool AnyConnectorsDisconnected
+		{
+			get
+			{
+				foreach (var item in nodeItems)
+				{
+					if (item.Input.Enabled && !item.Input.HasConnection)
+						return true;
+					if (item.Output.Enabled && !item.Output.HasConnection)
+						return true;
+				}
+				return false;
+			}
+		}
+
+		// Returns true if there are some output connections that aren't connected
+		public bool AnyOutputConnectorsDisconnected
+		{
+			get
+			{
+				foreach (var item in nodeItems)
+					if (item.Output.Enabled && !item.Output.HasConnection)
+						return true;
+				return false;
+			}
+		}
+
+		// Returns true if there are some input connections that aren't connected
+		public bool AnyInputConnectorsDisconnected
+		{
+			get
+			{
+				foreach (var item in nodeItems)
+					if (item.Input.Enabled && !item.Input.HasConnection)
+						return true;
+				return false;
+			}
+		}
 
 		public ElementType ElementType { get { return ElementType.Node; } }
 	}
