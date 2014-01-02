@@ -31,11 +31,52 @@ namespace Graph
 	public abstract class NodeConnector : IElement
 	{
 		public NodeConnector(NodeItem item, bool enabled) { Item = item; Enabled = enabled; }
-		public Node				Node		{ get { return Item.Node; } }
-		public NodeItem			Item		{ get; private set; }
-		public bool				Enabled		{ get; internal set; }
 
-		internal PointF			Center		{ get { return new PointF((bounds.Left + bounds.Right) / 2.0f, (bounds.Top + bounds.Bottom) / 2.0f); } }
+		// The Node that owns this NodeConnector
+		public Node				Node			{ get { return Item.Node; } }
+		// The NodeItem that owns this NodeConnector
+		public NodeItem			Item			{ get; private set; }
+		// Set to true if this NodeConnector can be connected to
+		public bool				Enabled			{ get; internal set; }
+		
+		// Iterates through all the connectors connected to this connector
+		public IEnumerable<NodeConnection> Connectors
+		{
+			get
+			{
+				if (!Enabled)
+					yield break;
+				var parentNode = Node;
+				if (parentNode == null)
+					yield break;
+				foreach (var connection in parentNode.connections)
+				{
+					if (connection.From == this) yield return connection;
+					if (connection.To   == this) yield return connection;
+				}
+			}
+		}
+		
+		// Returns true if connector has any connection attached to it
+		public bool HasConnection
+		{
+			get
+			{
+				if (!Enabled)
+					return false;
+				var parentNode = Node;
+				if (parentNode == null)
+					return false;
+				foreach (var connection in parentNode.connections)
+				{
+					if (connection.From == this) return true;
+					if (connection.To   == this) return true;
+				}
+				return false;
+			}
+		}
+
+		internal PointF			Center			{ get { return new PointF((bounds.Left + bounds.Right) / 2.0f, (bounds.Top + bounds.Bottom) / 2.0f); } }
 		internal RectangleF		bounds;
 		internal RenderState	state;
 

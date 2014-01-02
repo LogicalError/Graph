@@ -697,9 +697,13 @@ namespace Graph
 			var from	= connection.From;
 			var to		= connection.To;
 			if (from != null && from.Node != null)
+			{
 				from.Node.connections.Remove(connection);
+			}
 			if (to != null && to.Node != null)
+			{
 				to.Node.connections.Remove(connection);
+			}
 
 			// Just in case somebody stored it somewhere ..
 			connection.From = null;
